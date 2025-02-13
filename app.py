@@ -8,7 +8,7 @@ import httpx
 import asyncio
 
 
-FIRECRAWL_SEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v0/search"
+FIRECRAWL_SEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/search"
 FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/scrape"
 JINA_ENDPOINT_DEFAULT = "https://r.jina.ai/"
 
@@ -99,7 +99,7 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
         del res['score']
         del res['category']
         del res['template']
-        del res['thumbnail']
+        if 'thumbnail' in res: del res['thumbnail']
         del res['engines']
     del result['results']
     del result['suggestions']
@@ -308,6 +308,33 @@ async def serpapi_search(query: str, api_key: Optional[str] = Query(None)):
     print(f"Searching {query} with SerpAPI")
     result = await make_request(endpoint, params=params)
     result['backend'] = "serpapi"
+    del result['search_metadata']
+    del result['search_parameters']
+    del result['search_information']
+    del result['knowledge_graph']
+    del result['related_questions']
+    del result['related_searches']
+    del result['answer_box']
+    del result['top_stories']
+    del result['top_stories_link']
+    del result['top_stories_serpapi_link']
+    del result['pagination']
+    del result['serpapi_pagination']
+    result['data'] = result['organic_results']
+
+    for res in result['data']:
+        res['description'] = res['snippet']
+        res['url'] = res['link']
+        del res['position']
+        del res['link']
+        del res['redirect_link']
+        del res['displayed_link']
+        del res['favicon']
+        del res['snippet']
+        if 'snippet_highlighted_words' in res: del res['snippet_highlighted_words']
+        del res['source']
+    del result['organic_results']
+    result['success'] =  True
     return result
 
 # Tavily search endpoint
@@ -322,8 +349,17 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None)):
     result['backend'] = "tavily"
     result['data'] = result['results']
     result['success'] = True
-    result['returnCode'] = 200
+    for res in result['data']:
+        res['description'] = res['content']
+        del res['score']
+        del res['raw_content']
+        del res['content']
     del result['results']
+    del result['response_time']
+    del result['images']
+    del result['answer']
+    del result['query']
+    del result['follow_up_questions']
     return result
 
 # Jina Reader endpoint
