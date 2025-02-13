@@ -121,3 +121,9 @@ http://127.0.0.1:8000/scrape?url=https://www.wikipedia.org&backend=jina
 ```
 http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint=https://search.url4irl.com/
 ```
+
+## Self-hostable tools
+* Jina Reader: https://github.com/intergalacticalvariable/reader
+* Firecrawl: https://github.com/devflowinc/firecrawl-simple/
+* SearXNG: https://github.com/searxng/searxng
+* Crawl4AI https://github.com/unclecode/crawl4ai
