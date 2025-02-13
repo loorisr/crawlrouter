@@ -88,6 +88,10 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     print(f"Searching {query} with searxng on {endpoint}")
     result = await make_request(url, params=params, headers=headers)
     result['backend'] = "searxng"
+    result['data'] = result['results']
+    result['success'] = True
+    result['returnCode'] = 200
+    del result['results']
     return result
 
 # Firecrawl scrape endpoint
