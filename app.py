@@ -90,8 +90,25 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     result['backend'] = "searxng"
     result['data'] = result['results']
     result['success'] = True
-    result['returnCode'] = 200
+    for res in result['data']:
+        res['description'] = res['content']
+        del res['content']
+        del res['engine']
+        del res['parsed_url']
+        del res['positions']
+        del res['score']
+        del res['category']
+        del res['template']
+        del res['thumbnail']
+        del res['engines']
     del result['results']
+    del result['suggestions']
+    del result['infoboxes']
+    del result['answers']
+    del result['corrections']
+    del result['query']
+    del result['unresponsive_engines']
+    del result['number_of_results']
     return result
 
 # Firecrawl scrape endpoint
@@ -231,7 +248,27 @@ async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(Non
     params = {"q": query, "cx": google_cse_id, "key": google_cse_key}
     print(f"Searching {query} with Google")
     result = await make_request(url, params=params)
-    result["backend"] = "Google CSE"
+    result["backend"] = "google"
+    result['data'] = result['items']
+    result['success'] = True
+    for res in result['data']:
+        res['description'] = res['snippet']
+        res['url'] = res['link']
+        del res['htmlTitle']
+        del res['displayLink']
+        del res['htmlFormattedUrl']
+        del res['formattedUrl']
+        del res['htmlSnippet']
+        del res['snippet']
+        del res['pagemap']
+        del res['link']
+        del res['kind']
+    del result['items']
+    del result['kind']
+    del result['url']
+    del result['queries']
+    del result['searchInformation']
+    del result['context']
     return result
 
 
@@ -244,7 +281,7 @@ async def brave_search(query: str, api_key: Optional[str] = Query(None)):
     params = {"q": query}
     print(f"Searching {query} with Brave")
     result = await make_request(endpoint, params=params, headers=headers)
-    result['backend'] = "searxng"
+    result['backend'] = "brave"
     return result
 
 
@@ -283,6 +320,10 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None)):
     print(f"Searching {query} with tavily")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
     result['backend'] = "tavily"
+    result['data'] = result['results']
+    result['success'] = True
+    result['returnCode'] = 200
+    del result['results']
     return result
 
 # Jina Reader endpoint
