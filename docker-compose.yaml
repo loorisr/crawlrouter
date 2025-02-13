@@ -9,13 +9,13 @@ services:
     environment:
       - SCRAPE_BACKEND=jina
       - SEARCH_BACKEND=searxng
-      - FIRECRAWL_SEARCH_ENDPOINT=https://api.firecrawl.dev/v0/search
+      - FIRECRAWL_SEARCH_ENDPOINT=https://api.firecrawl.dev/v1/search
       - FIRECRAWL_SCRAPE_ENDPOINT=https://api.firecrawl.dev/v1/scrape
       - FIRECRAWL_API_KEY=
       - TAVILY_API_KEY=
       - JINA_API_KEY=
       - JINA_ENDPOINT=https://r.jina.ai/
-      - SEARXNG_ENDPOINT=https://search.url4irl.com/ # or https://searx.perennialte.ch
+      - SEARXNG_ENDPOINT=https://search.url4irl.com/ # or https://searx.perennialte.ch # json format has to be enabled in settings.yml
       - GOOGLE_CSE_KEY=
       - GOOGLE_CSE_ID=
       - SERPAPI_KEY=
