@@ -20,7 +20,7 @@ SCRAPE_BACKEND = os.getenv("SCRAPE_BACKEND")
 
 app = FastAPI(    title="CrawlRouter",
    # description=description,
-    summary="Unified API for Search and Crawling",
+    summary="Unified API for Searching and Crawling",
     version="0.0.1",
     contact={
         "name": "loorisr",
@@ -83,7 +83,7 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     url = f"{endpoint}/search"
     params = {"q": query, "format": "json"}
 
-    headers = {"Accept": "text/html", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0", "Accept-Language": "en,fr", "Accept-Encoding": "gzip, deflate, br, zstd"}
+    headers = {"Accept": "text/html", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0", "Accept-Language": "en,fr", "Accept-Encoding": "gzip,deflate"}
 
     print(f"Searching {query} with searxng on {endpoint}")
     result = await make_request(url, params=params, headers=headers)
