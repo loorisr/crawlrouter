@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  crawlrouter:
+    container_name: crawlrouter
+    build: https://github.com/loorisr/crawlrouter.git
+    ports:
+      - "8000:8000"
+    environment:
+      - SCRAPE_BACKEND=jina
+      - SEARCH_BACKEND=searxng
+      - FIRECRAWL_SEARCH_ENDPOINT=https://api.firecrawl.dev/v0/search
+      - FIRECRAWL_SCRAPE_ENDPOINT=https://api.firecrawl.dev/v1/scrape
+      - FIRECRAWL_API_KEY=
+      - TAVILY_API_KEY=
+      - JINA_API_KEY=
+      - JINA_ENDPOINT=https://r.jina.ai/
+      - SEARXNG_ENDPOINT=https://search.url4irl.com/ # or https://searx.perennialte.ch
+      - GOOGLE_CSE_KEY=
+      - GOOGLE_CSE_ID=
+      - SERPAPI_KEY=
+      - CRAWL4AI_API_KEY=
+      - CRAWL4AI_ENDPOINT=
+      - CRAWL4AI_TIMEOUT=30
+      - HTTP_TIMEOUT=30
+    security_opt:
+      - no-new-privileges=true
+    read_only: true
+    restart: unless-stopped
