@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  crawlrouter:
+    container_name: crawlrouter
+    build: https://github.com/loorisr/crawlrouter.git
+    ports:
+      - "8000:8000"
+    networks:
+      - default
+    environment:
+      - SCRAPE_BACKEND=crawl4ai
+      - SEARCH_BACKEND=searxng
+      - SEARXNG_ENDPOINT=http://searxng:8080
+      - CRAWL4AI_API_KEY=my_private_api_token
+      - CRAWL4AI_ENDPOINT=http://crawl4ai:11235
+      - CRAWL4AI_TIMEOUT=30
+    security_opt:
+      - no-new-privileges=true
+    read_only: true
+    restart: unless-stopped
+    
+  crawl4ai:
+    image: unclecode/crawl4ai:basic-amd64
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - MAX_CONCURRENT_TASKS=5
+      - CRAWL4AI_API_TOKEN=my_private_api_token
+      
+  searxng:
+    container_name: searxng
+    image: searxng/searxng:latest
+    environment:
+      - BASE_URL=http://127.0.0.1:8080
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - /home/docker/searxng:/etc/searxng
+    networks:
+      - default
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+      
