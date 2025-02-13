@@ -19,7 +19,7 @@ pip install fastapi httpx uvicorn
 
 The API relies on the following environment variables:
 
-*   `SEARXNG_ENDPOINT`: Endpoint for Searxng.
+*   `SEARXNG_ENDPOINT`: Endpoint for Searxng. JSON needs to be activated in the formats settings in the search section: https://docs.searxng.org/admin/engines/settings.html#search
 
 *   `FIRECRAWL_API_KEY`: API key for Firecrawl.
 *   `FIRECRAWL_SEARCH_ENDPOINT`: Endpoint for Firecrawl Search API.
