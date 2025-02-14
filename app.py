@@ -470,7 +470,7 @@ class SearchQuery(BaseModel):
     limit: Optional[int] = 5
     google_cse_key: str | None = None
     google_cse_id: str | None = None
-    scrapeOptions: list = []
+    scrapeOptions: dict = []
 
 
 #search combined endpoint
@@ -486,7 +486,7 @@ async def search_post(body: SearchQuery):
     google_cse_id = body.google_cse_id
     limit = body.limit
     scrapeOptions = body.scrapeOptions
-    if not scrapeOptions:
+    if scrapeOptions and scrapeOptions["formats"] and scrapeOptions["formats"][0] == "markdown":
         scrape = True
     else:
         scrape = False
