@@ -18,13 +18,15 @@ HTTP_TIMEOUT = (float)(os.getenv("HTTP_TIMEOUT")) or 30.
 SEARCH_BACKEND = os.getenv("SEARCH_BACKEND")
 SCRAPE_BACKEND = os.getenv("SCRAPE_BACKEND")
 
+SEARCH_RESULT_NUMBER_DEFAULT = 5
+
 app = FastAPI(    title="CrawlRouter",
    # description=description,
     summary="Unified API for Searching and Crawling",
     version="0.0.1",
     contact={
         "name": "loorisr",
-        "url": "https://github.com/loorisr/CrawlRouter"
+        "url": "https://github.com/loorisr/crawlrouter"
     },
     license_info={
         "name": "GNU Affero General Public License v3.0",
@@ -46,14 +48,14 @@ def get_api_key(query_key: Optional[str], env_key: str) -> str:
 
 
 # Function to get endpoint from query or environment variables
-def get_endpoint(query_key: Optional[str], env_key: str, default= None) -> str:
-    if query_key:
-        return query_key
+def get_endpoint(query_endpoint: Optional[str], env_key: str, default_endpoint= None) -> str:
+    if query_endpoint:
+        return query_endpoint
     endpoint = os.environ.get(env_key)
     if endpoint:
         return endpoint
     else:
-        return default
+        return default_endpoint
 
 async def make_request(url: str, headers: dict = None, params: dict = None, method: str = "GET"):
     async with httpx.AsyncClient() as client:
@@ -271,9 +273,12 @@ async def scrape_post(body: ScrapeQuery):
 async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     google_cse_id = get_api_key(google_cse_id, "GOOGLE_CSE_ID") 
     google_cse_key = get_api_key(google_cse_key, "GOOGLE_CSE_KEY")
-    if not limit: limit = 5
+    if limit > 0:
+        num = limit
+    else:
+        num = SEARCH_RESULT_NUMBER_DEFAULT
     url = "https://customsearch.googleapis.com/customsearch/v1"
-    params = {"q": query, "cx": google_cse_id, "key": google_cse_key, "num": limit}
+    params = {"q": query, "cx": google_cse_id, "key": google_cse_key, "num": num}
     print(f"Searching {query} with Google")
     result = await make_request(url, params=params)
     result["backend"] = "google"
@@ -319,23 +324,37 @@ async def brave_search(query: str, api_key: Optional[str] = Query(None)):
 
 # Firecrawl Search endpoint
 @app.get("/search/firecrawl")
-async def firecrawl_search(query: str, api_key: Optional[str] = Query(None)):
+async def firecrawl_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
     endpoint = get_endpoint(None, "FIRECRAWL_SEARCH_ENDPOINT", FIRECRAWL_SEARCH_ENDPOINT_DEFAULT)
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    if limit > 0 :
+        number_of_results = limit
+    else:
+        number_of_results = SEARCH_RESULT_NUMBER_DEFAULT
+
     body = {"query": query}
+    if scrape:
+        body["scrapeOptions"] = {}
+        body["scrapeOptions"]["formats"] = ["markdown"]
+        
     print(f"Searching {query} with Firecrawl on {endpoint}")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
+    result['data'] = result['data'][:number_of_results]
     result['backend'] = "firecrawl"
     return result
 
 
 # SerpAPI search endpoint
 @app.get("/search/serpapi")
-async def serpapi_search(query: str, api_key: Optional[str] = Query(None)):
+async def serpapi_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "SERPAPI_KEY")
     endpoint = "https://serpapi.com/search"
-    params = {"q": query, "api_key": api_key}
+    if limit > 0:
+        num = limit
+    else:
+        num = SEARCH_RESULT_NUMBER_DEFAULT
+    params = {"q": query, "api_key": api_key, "num": num}
     print(f"Searching {query} with SerpAPI")
     result = await make_request(endpoint, params=params)
     result['backend'] = "serpapi"
@@ -358,22 +377,29 @@ async def serpapi_search(query: str, api_key: Optional[str] = Query(None)):
         res['url'] = res['link']
         del res['position']
         del res['link']
-        del res['redirect_link']
-        del res['displayed_link']
-        del res['favicon']
+        if 'redirect_link' in res: del res['redirect_link']
+        if 'displayed_link' in res: del res['displayed_link']
+        if 'favicon' in res: del res['favicon']
         del res['snippet']
         if 'snippet_highlighted_words' in res: del res['snippet_highlighted_words']
-        del res['source']
+        if 'source' in res: del res['source']
+        if scrape:
+            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
+            res['markdown'] = scrapped_page['data']['markdown']
     del result['organic_results']
     result['success'] =  True
     return result
 
 # Tavily search endpoint
 @app.get("/search/tavily")
-async def tavily_search(query: str, api_key: Optional[str] = Query(None)):
+async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "TAVILY_API_KEY")
     endpoint = "https://api.tavily.com/search"
-    body = {"query": query}
+    if limit>0:
+        max_results = limit
+    else:
+        max_results = 5
+    body = {"query": query, "max_results": max_results}
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
     print(f"Searching {query} with tavily")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
@@ -385,6 +411,9 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None)):
         del res['score']
         del res['raw_content']
         del res['content']
+        if scrape:
+            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
+            res['markdown'] = scrapped_page['data']['markdown']
     del result['results']
     del result['response_time']
     del result['images']
@@ -449,15 +478,15 @@ async def search_get(query: str, backend: Optional[str] = Query(None), endpoint:
         return result
 
     elif backend == "firecrawl":
-        result = await firecrawl_search(query, api_key=api_key, scrape=scrape)
+        result = await firecrawl_search(query, api_key=api_key, limit=limit, scrape=scrape)
         return result
 
     elif backend == "serpapi":
-        result = await serpapi_search(query, api_key=api_key, scrape=scrape)
+        result = await serpapi_search(query, api_key=api_key, limit=limit, scrape=scrape)
         return result
 
     elif backend == "tavily":
-        result = await tavily_search(query, api_key=api_key, scrape=scrape)
+        result = await tavily_search(query, api_key=api_key, limit=limit, scrape=scrape)
         return result
 
 
@@ -467,7 +496,7 @@ class SearchQuery(BaseModel):
     backend: str | None = None
     api_key: str | None = None
     endpoint: str | None = None
-    limit: Optional[int] = 5
+    limit: Optional[int] = SEARCH_RESULT_NUMBER_DEFAULT
     google_cse_key: str | None = None
     google_cse_id: str | None = None
     scrapeOptions: dict = []
