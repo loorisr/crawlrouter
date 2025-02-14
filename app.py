@@ -74,7 +74,7 @@ async def make_request(url: str, headers: dict = None, params: dict = None, meth
 
 # Searxng endpoint
 @app.get("/search/searxng")
-async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
    # api_key = get_api_key(api_key, "SEARXNG_API_KEY")
     endpoint = get_endpoint(endpoint, "SEARXNG_ENDPOINT")
     if not endpoint:
@@ -90,6 +90,8 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     result['backend'] = "searxng"
     result['data'] = result['results']
     result['success'] = True
+    if limit>0:
+        result['data'] = result['data'][:limit]
     for res in result['data']:
         res['description'] = res['content']
         del res['content']
@@ -101,6 +103,9 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
         del res['template']
         if 'thumbnail' in res: del res['thumbnail']
         del res['engines']
+        if scrape:
+            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
+            res['markdown'] = scrapped_page['data']['markdown']
     del result['results']
     del result['suggestions']
     del result['infoboxes']
@@ -148,50 +153,72 @@ async def crawl4ai_scrape(url: str, api_key: Optional[str] = Query(None), endpoi
     params = {"urls": url}
     endpoint = get_endpoint(endpoint, "CRAWL4AI_ENDPOINT")
     endpoint = endpoint.rstrip('/')
-    query_url = f"{endpoint}/crawl"
+    #query_url = f"{endpoint}/crawl"  ## asynchronous
+    query_url = f"{endpoint}/crawl_sync"  ## synchronous
     headers = {"Authorization": f"Bearer {api_key}"}
     print(f"Scraping {url} with Crawl4AI on {endpoint}")
+
     result = await make_request(query_url, headers=headers, params=params, method="POST")
-    task_id = result["task_id"]
-    print(f"task_id {task_id}")
+    if result["status"] == "completed":
+        result['backend'] = "crawl4ai"
+        result['data'] = result['result']
+        result['success'] = result['data']['success']
+        result['data']['metadata']['statusCode'] = result['data']['status_code'] 
+        del result['result']
+        del result['status']
+        #del result['created_at']
+        del result['data']['response_headers']
+        del result['data']['markdown_v2']
+        del result['data']['media']
+        del result['data']['links']
+        del result['data']['html']
+        del result['data']['cleaned_html']
+        del result['data']['fit_html']
+        del result['data']['fit_markdown']
+        del result['data']['success']
+        del result['data']['status_code'] 
+        return result
+    # result = await make_request(query_url, headers=headers, params=params, method="POST")
+    # task_id = result["task_id"]
+    # print(f"task_id {task_id}")
 
-    # Get results
-    query_url = f"{endpoint}/task/{task_id}"
-    print(f"{query_url}")
-    time.sleep(0.5)
-    result = await make_request(query_url, headers=headers, params=None)
+    # # Get results
+    # query_url = f"{endpoint}/task/{task_id}"
+    # print(f"{query_url}")
+    # time.sleep(0.5)
+    # result = await make_request(query_url, headers=headers, params=None)
 
-    # Poll for result
-    timeout = CRAWL4AI_TIMEOUT
-    start_time = time.time()
-    while True:
-        if time.time() - start_time > timeout:
-            raise TimeoutError(f"Task {task_id} timeout")
+    # # Poll for result
+    # timeout = CRAWL4AI_TIMEOUT
+    # start_time = time.time()
+    # while True:
+    #     if time.time() - start_time > timeout:
+    #         #raise TimeoutError(f"Task {task_id} timeout")
+    #         raise HTTPException(status_code=400, detail="Timeout exceeded")
 
-        result = await make_request(query_url, headers=headers, params=None)
-        print(result["status"])
+    #     result = await make_request(query_url, headers=headers, params=None)
 
-        if result["status"] == "completed":
-            result['backend'] = "crawl4ai"
-            result['data'] = result['result']
-            result['success'] = result['data']['success']
-            result['data']['metadata']['statusCode'] = result['data']['status_code'] 
-            del result['result']
-            del result['status']
-            del result['created_at']
-            del result['data']['response_headers']
-            del result['data']['markdown_v2']
-            del result['data']['media']
-            del result['data']['links']
-            del result['data']['html']
-            del result['data']['cleaned_html']
-            del result['data']['fit_html']
-            del result['data']['fit_markdown']
-            del result['data']['success']
-            del result['data']['status_code'] 
-            return result
+    #     if result["status"] == "completed":
+    #         result['backend'] = "crawl4ai"
+    #         result['data'] = result['result']
+    #         result['success'] = result['data']['success']
+    #         result['data']['metadata']['statusCode'] = result['data']['status_code'] 
+    #         del result['result']
+    #         del result['status']
+    #         del result['created_at']
+    #         del result['data']['response_headers']
+    #         del result['data']['markdown_v2']
+    #         del result['data']['media']
+    #         del result['data']['links']
+    #         del result['data']['html']
+    #         del result['data']['cleaned_html']
+    #         del result['data']['fit_html']
+    #         del result['data']['fit_markdown']
+    #         del result['data']['success']
+    #         del result['data']['status_code'] 
+    #         return result
 
-        time.sleep(1)
+    #     time.sleep(1)
             
 @app.get("/scrape")
 @app.get("/v1/scrape")
@@ -241,11 +268,12 @@ async def scrape_post(body: ScrapeQuery):
 
 # Google CSE endpoint
 @app.get("/search/cse")
-async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None)):
+async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     google_cse_id = get_api_key(google_cse_id, "GOOGLE_CSE_ID") 
     google_cse_key = get_api_key(google_cse_key, "GOOGLE_CSE_KEY")
+    if not limit: limit = 5
     url = "https://customsearch.googleapis.com/customsearch/v1"
-    params = {"q": query, "cx": google_cse_id, "key": google_cse_key}
+    params = {"q": query, "cx": google_cse_id, "key": google_cse_key, "num": limit}
     print(f"Searching {query} with Google")
     result = await make_request(url, params=params)
     result["backend"] = "google"
@@ -260,9 +288,12 @@ async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(Non
         del res['formattedUrl']
         del res['htmlSnippet']
         del res['snippet']
-        del res['pagemap']
+        if 'pagemap' in res: del res['pagemap']
         del res['link']
         del res['kind']
+        if scrape:
+            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
+            res['markdown'] = scrapped_page['data']['markdown']
     del result['items']
     del result['kind']
     del result['url']
@@ -393,7 +424,7 @@ async def jina_reader(url: str, api_key: Optional[str] = Query(None), endpoint: 
 #search combined endpoint
 @app.get("/search")
 @app.get("/v0/search")
-async def search_get(query: str, backend: Optional[str] = Query(None), endpoint: Optional[str] = Query(None), google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None), api_key: Optional[str] = Query(None)):
+async def search_get(query: str, backend: Optional[str] = Query(None), endpoint: Optional[str] = Query(None), google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None), api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     if backend:
         if backend not in ["google", "searxng", "brave", "firecrawl", "serpapi", "tavily"]:
             raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'google', 'searxng', 'brave', 'firecrawl', 'serpapi' or 'tavily'.")
@@ -406,28 +437,29 @@ async def search_get(query: str, backend: Optional[str] = Query(None), endpoint:
             raise HTTPException(status_code=400, detail="Search backend missing.")
 
     if backend == "google":
-        result = await google_cse_search(query, google_cse_id=google_cse_id, google_cse_key=google_cse_key)
+        result = await google_cse_search(query, google_cse_id=google_cse_id, google_cse_key=google_cse_key, limit=limit, scrape=scrape)
         return result
 
     elif backend == "searxng":
-        result = await searxng_search(query, api_key=api_key, endpoint=endpoint)
+        result = await searxng_search(query, api_key=api_key, endpoint=endpoint, limit=limit, scrape=scrape)
         return result
 
     elif backend == "brave":
-        result = await brave_search(query, api_key=api_key)
+        result = await brave_search(query, api_key=api_key, scrape=scrape)
         return result
 
     elif backend == "firecrawl":
-        result = await firecrawl_search(query, api_key=api_key)
+        result = await firecrawl_search(query, api_key=api_key, scrape=scrape)
         return result
 
     elif backend == "serpapi":
-        result = await serpapi_search(query, api_key=api_key)
+        result = await serpapi_search(query, api_key=api_key, scrape=scrape)
         return result
 
     elif backend == "tavily":
-        result = await tavily_search(query, api_key=api_key)
+        result = await tavily_search(query, api_key=api_key, scrape=scrape)
         return result
+
 
 
 class SearchQuery(BaseModel):
@@ -435,8 +467,10 @@ class SearchQuery(BaseModel):
     backend: str | None = None
     api_key: str | None = None
     endpoint: str | None = None
+    limit: Optional[int] = 5
     google_cse_key: str | None = None
     google_cse_id: str | None = None
+    scrapeOptions: list = []
 
 
 #search combined endpoint
@@ -450,4 +484,10 @@ async def search_post(body: SearchQuery):
     api_key = body.api_key
     google_cse_key = body.google_cse_key
     google_cse_id = body.google_cse_id
-    return await search_get(query, backend, endpoint, google_cse_id, google_cse_key, api_key)
+    limit = body.limit
+    scrapeOptions = body.scrapeOptions
+    if not scrapeOptions:
+        scrape = True
+    else:
+        scrape = False
+    return await search_get(query, backend, endpoint, google_cse_id, google_cse_key, api_key, limit, scrape)
