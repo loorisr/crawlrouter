@@ -140,5 +140,5 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
 
 Ideas for the future:
-* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), Bing Search API
+* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), [Markdowner](https://github.com/supermemoryai/markdowner), Bing Search API
 * complete the API implementation (scraping options) 
