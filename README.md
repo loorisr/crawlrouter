@@ -1,6 +1,8 @@
 # CrawlRouter
 
-This is a API that integrates with Tavily, Searxng, Firecrawl, and Crawl4ai.
+This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, Firecrawl, Jina, Google CSE and Crawl4ai.
+
+I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software can is compatible with Firecrawl.
 
 ## Prerequisites
 
@@ -54,6 +56,11 @@ uvicorn app:app --reload --host 0.0.0.0
 This will start the API server at `http://0.0.0.0:8000`.
 
 ## Endpoints
+
+### Documentation Endpoints
+
+*   `/` or `/docs` (GET): API documentation in Swagger UI
+*   `/redoc` (GET): API documentation in ReDoc
 
 ### Search Endpoints
 
@@ -127,3 +134,11 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 * Firecrawl: https://github.com/devflowinc/firecrawl-simple/
 * SearXNG: https://github.com/searxng/searxng
 * Crawl4AI https://github.com/unclecode/crawl4ai
+
+## Roadmap
+
+I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
+
+Ideas for the future:
+* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), Bing Search API
+* complete the API implementation (scraping options) 
