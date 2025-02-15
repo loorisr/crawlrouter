@@ -135,6 +135,10 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 * SearXNG: https://github.com/searxng/searxng
 * Crawl4AI https://github.com/unclecode/crawl4ai
 
+## Docker hub image
+
+`docker pull loorisr/crawlrouter:latest`
+
 ## Roadmap
 
 I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
