@@ -44,7 +44,6 @@ The API relies on the following environment variables:
 *   `SEARCH_BACKEND`: Search endpoint default backend.
 *   `SCRAPE_BACKEND`: Scrape endpoint default backend.
 
-
 You can also pass the API keys and endpoint via query parameters.
 
 ## Running the API
@@ -72,27 +71,41 @@ This will start the API server at `http://0.0.0.0:8000`.
     *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
     *  `google_cse_id`: Google Custom Search Engine ID (optional). Can be set with environment variable.
     *  `google_cse_key`: Google Custom Search Engine Key (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 
 *  `/search/searxng` (GET): Searxng search endpoint.
     *   `query`: Search query (required).
     *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 *  `/search/firecrawl` (GET): Firecrawl search endpoint.
     *   `query`: Search query (required).
     *   `api_key`: API key (optional). Can be set with environment variable.
     *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 * `/search/cse` (GET): Google Custom Search Engine endpoint.
     *  `query`: Search query (required).
     *  `google_cse_id`: Google Custom Search Engine ID (optional). Can be set with environment variable.
     *  `google_cse_key`: Google Custom Search Engine Key (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 *  `/search/brave` (GET): Brave Search API endpoint.
     *   `query`: Search query (required).
     *   `api_key`: API key (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 * `/search/serpapi` (GET): SerpAPI endpoint.
     *   `query`: Search query (required).
     *   `api_key`: API key (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 * `/search/tavily` (GET): Tavily endpoint.
     *   `query`: Search query (required).
     *   `api_key`: API key (optional). Can be set with environment variable.
+    *   `limit` : Number of results to return. Default is 5.
+    *   `scrape` : Boolean. If true, scrape each page in the result.
 
 
 ### Scrape Endpoints
