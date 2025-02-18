@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
 from typing import Union, List, Optional
+from markdownify import markdownify as md
 import os
 import time
 import sys
@@ -26,6 +27,7 @@ SCRAPE_BACKEND_ROTATE = os.getenv("SCRAPE_BACKEND_ROTATE")
 SEARCH_RESULT_NUMBER_DEFAULT = 5
 
 SCRAPINGANT_JS_RENDERING = os.getenv("SCRAPINGANT_JS_RENDERING", 'False').lower() in ('true', '1', 't')
+SCRAPINGBEE_JS_RENDERING = os.getenv("SCRAPINGBEE_JS_RENDERING", 'False').lower() in ('true', '1', 't')
 
 
 app = FastAPI(    title="CrawlRouter",
@@ -178,11 +180,60 @@ async def scrapingant_scrape(url: str, api_key: Optional[str] = Query(None), end
     print(f"Scraping {url} with Scraping Ant")
     result = {}
     result['data'] = await make_request(endpoint, params=params, headers=headers, method="GET")
-    print(params)
     result['metadata'] = {}
     result['metadata']['url']  = result['data']['url'] 
     del result['data']['url'] 
     result['backend'] = "scrapingant"
+
+    return result
+
+# Scraping Bee scrape endpoint
+@app.get("/scrape/scrapingbee")
+async def scrapingbee_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    api_key = get_api_key(api_key, "SCRAPINGBEE_API_KEY")
+    endpoint = "https://app.scrapingbee.com/api/v1"
+    headers = {"Accept": "application/json"}
+    params = {"url": url, "api_key": api_key, "render_js": SCRAPINGBEE_JS_RENDERING, "json_response": True}
+    print(f"Scraping {url} with Scraping Bee")
+    scrapped_page = await make_request(endpoint, params=params, headers=headers, method="GET")
+    result = {}
+    result['data'] = {}
+    #result['data']['html'] = scrapped_page['body']
+    result['data']['markdown'] = md(scrapped_page['body'])
+    result['metadata'] = {} 
+    result['metadata']['url']  = url
+    result['backend'] = "scrapingbee"
+
+    return result
+
+# Markdowner scrape endpoint
+@app.get("/scrape/markdowner")
+async def markdowner_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    ##api_key = get_api_key(api_key, "MARKDOWNER_API_KEY")
+    endpoint = "https://md.dhr.wtf/"
+    headers = {"content-type": "application/json"}
+    params = {"url": url}
+    print(f"Scraping {url} with Markdowner")
+
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(endpoint, headers=headers, params=params, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            scrapped_page = response.text
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
+    result = {}
+    result['data'] = {}
+    result['data']['markdown'] = scrapped_page
+    result['metadata'] = {} 
+    result['metadata']['url']  = url
+    result['backend'] = "markdowner"
 
     return result
 
@@ -391,8 +442,8 @@ async def crawl4ai_batch_scrape(urls: list[str] = Query(), api_key: Optional[str
 @app.get("/v1/scrape")
 async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     if backend:
-        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant' or 'tavily.")
+        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee"]:
+            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee' or 'tavily.")
     else: # parameter backend not defined
         if SCRAPE_BACKEND_ROTATE:
             # Split the string by comma to get a list of options
@@ -422,6 +473,10 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
 
     elif backend == "scrapingant":
         result = await scrapingant_scrape(url, api_key=api_key)
+        return result
+
+    elif backend == "scrapingbee":
+        result = await scrapingbee_scrape(url, api_key=api_key)
         return result
 
 
