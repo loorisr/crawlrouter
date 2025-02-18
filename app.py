@@ -7,7 +7,7 @@ import time
 import sys
 import httpx
 import asyncio
-
+import random
 
 FIRECRAWL_SEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/search"
 FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/scrape"
@@ -19,6 +19,9 @@ HTTP_TIMEOUT = (float)(os.getenv("HTTP_TIMEOUT")) or 30.
 
 SEARCH_BACKEND = os.getenv("SEARCH_BACKEND")
 SCRAPE_BACKEND = os.getenv("SCRAPE_BACKEND")
+
+SEARCH_BACKEND_ROTATE = os.getenv("SEARCH_BACKEND_ROTATE")
+SCRAPE_BACKEND_ROTATE = os.getenv("SCRAPE_BACKEND_ROTATE")
 
 SEARCH_RESULT_NUMBER_DEFAULT = 5
 
@@ -369,7 +372,12 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
         if backend not in ["jina", "firecrawl", "crawl4ai", "tavily"]:
             raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai' or 'tavily.")
     else: # parameter backend not defined
-        if SCRAPE_BACKEND:
+        if SCRAPE_BACKEND_ROTATE:
+            # Split the string by comma to get a list of options
+            options = SCRAPE_BACKEND_ROTATE.split(',')
+            # Randomly select one of the options
+            backend = random.choice(options)
+        elif SCRAPE_BACKEND:
             backend = SCRAPE_BACKEND
         else: # jina can be used without an API key
             backend = "jina"
@@ -497,16 +505,18 @@ async def serpapi_search(query: str, api_key: Optional[str] = Query(None), limit
     print(f"Searching {query} with SerpAPI")
     result = await make_request(endpoint, params=params)
     result['backend'] = "serpapi"
+
     del result['search_metadata']
     del result['search_parameters']
     del result['search_information']
-    del result['knowledge_graph']
-    del result['related_questions']
-    del result['related_searches']
-    del result['answer_box']
-    del result['top_stories']
-    del result['top_stories_link']
-    del result['top_stories_serpapi_link']
+    if 'knowledge_graph' in result: del result['knowledge_graph']
+    if 'related_questions' in result: del result['related_questions']
+    if 'related_searches' in result: del result['related_searches']
+    if 'answer_box' in result: del result['answer_box']
+    if 'top_stories' in result: del result['top_stories']
+    if 'top_stories_link' in result: del result['top_stories_link']
+    if 'top_stories_serpapi_link' in result: del result['top_stories_serpapi_link']
+    if 'inline_images' in result: del result['inline_images']
     del result['pagination']
     del result['serpapi_pagination']
     result['data'] = result['organic_results']
@@ -604,8 +614,11 @@ async def search_get(query: str, backend: Optional[str] = Query(None), endpoint:
         if backend not in ["google", "searxng", "brave", "firecrawl", "serpapi", "tavily"]:
             raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'google', 'searxng', 'brave', 'firecrawl', 'serpapi' or 'tavily'.")
     else:
-        if google_cse_key and google_cse_id:
-            backend = "google"
+        if SEARCH_BACKEND_ROTATE:
+            # Split the string by comma to get a list of options
+            options = SEARCH_BACKEND_ROTATE.split(',')
+            # Randomly select one of the options
+            backend = random.choice(options)
         elif SEARCH_BACKEND:
             backend = SEARCH_BACKEND
         else:
@@ -684,7 +697,12 @@ async def batch_scrape_get(urls: list[str] = Query(), backend: Optional[str] = Q
         if backend not in ["firecrawl", "crawl4ai", "tavily"]:
             raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
     else: # parameter backend not defined
-        if SCRAPE_BACKEND:
+        if SCRAPE_BACKEND_ROTATE:
+            # Split the string by comma to get a list of options
+            options = SCRAPE_BACKEND_ROTATE.split(',')
+            # Randomly select one of the options
+            backend = random.choice(options)
+        elif SCRAPE_BACKEND:
             backend = SCRAPE_BACKEND
         else: 
             raise HTTPException(status_code=400, detail="Missing backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
