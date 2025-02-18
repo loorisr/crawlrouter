@@ -25,6 +25,9 @@ SCRAPE_BACKEND_ROTATE = os.getenv("SCRAPE_BACKEND_ROTATE")
 
 SEARCH_RESULT_NUMBER_DEFAULT = 5
 
+SCRAPINGANT_JS_RENDERING = os.getenv("SCRAPINGANT_JS_RENDERING", 'False').lower() in ('true', '1', 't')
+
+
 app = FastAPI(    title="CrawlRouter",
    # description=description,
     summary="Unified API for Searching and Crawling",
@@ -162,6 +165,25 @@ async def firecrawl_scrape(url: str, api_key: Optional[str] = Query(None), endpo
     print(f"Scraping {url} with Firecrawl on {endpoint}")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
     result['backend'] = "firecrawl"
+    return result
+
+
+# Scraping Ant scrape endpoint
+@app.get("/scrape/scrapingant")
+async def scrapingant_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    api_key = get_api_key(api_key, "SCRAPINGANT_API_KEY")
+    endpoint = "https://api.scrapingant.com/v2/markdown"
+    headers = {"Accept": "application/json"}
+    params = {"url": url, "x-api-key": api_key, "return_page_source": not SCRAPINGANT_JS_RENDERING}
+    print(f"Scraping {url} with Scraping Ant")
+    result = {}
+    result['data'] = await make_request(endpoint, params=params, headers=headers, method="GET")
+    print(params)
+    result['metadata'] = {}
+    result['metadata']['url']  = result['data']['url'] 
+    del result['data']['url'] 
+    result['backend'] = "scrapingant"
+
     return result
 
 @app.api_route("/test", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"])
@@ -369,8 +391,8 @@ async def crawl4ai_batch_scrape(urls: list[str] = Query(), api_key: Optional[str
 @app.get("/v1/scrape")
 async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     if backend:
-        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai' or 'tavily.")
+        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant"]:
+            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant' or 'tavily.")
     else: # parameter backend not defined
         if SCRAPE_BACKEND_ROTATE:
             # Split the string by comma to get a list of options
@@ -396,6 +418,10 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
 
     elif backend == "tavily":
         result = await tavily_scrape(url, api_key=api_key)
+        return result
+
+    elif backend == "scrapingant":
+        result = await scrapingant_scrape(url, api_key=api_key)
         return result
 
 
