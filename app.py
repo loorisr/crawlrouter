@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Query, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from fastapi import FastAPI, Query, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, HttpUrl
+from typing import Union, List, Optional
 import os
 import time
 import sys
@@ -10,6 +11,7 @@ import asyncio
 
 FIRECRAWL_SEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/search"
 FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/scrape"
+FIRECRAWL_BATCH_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/batch/scrape"
 JINA_ENDPOINT_DEFAULT = "https://r.jina.ai/"
 
 CRAWL4AI_TIMEOUT = (float)(os.getenv("CRAWL4AI_TIMEOUT")) or 30.
@@ -32,6 +34,10 @@ app = FastAPI(    title="CrawlRouter",
         "name": "GNU Affero General Public License v3.0",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
     },)
+
+@app.get("/")
+async def redirect_docs():
+    return RedirectResponse(url="/docs")
 
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
@@ -74,6 +80,22 @@ async def make_request(url: str, headers: dict = None, params: dict = None, meth
             raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
+def combined_search_scrape(search_result, scrapped_data):
+    # Create a dictionary from the scrapped array for quick lookup
+    scrapped_dict = {item['metadata']['url']: item['markdown'] for item in scrapped_data}
+
+    # Combine the data
+    combined_data = []
+    for item in search_result['data']:
+        url = item['url']
+        if url in scrapped_dict:
+            # Merge the data if the URL exists in both arrays
+            combined_item = item.copy()
+            combined_item['markdown'] = scrapped_dict[url]
+            combined_data.append(combined_item)
+
+    return combined_data
+
 # Searxng endpoint
 @app.get("/search/searxng")
 async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
@@ -92,8 +114,10 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     result['backend'] = "searxng"
     result['data'] = result['results']
     result['success'] = True
-    if limit>0:
-        result['data'] = result['data'][:limit]
+
+
+    result['data'] = result['data'][:limit]
+
     for res in result['data']:
         res['description'] = res['content']
         del res['content']
@@ -105,9 +129,9 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
         del res['template']
         if 'thumbnail' in res: del res['thumbnail']
         del res['engines']
-        if scrape:
-            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
-            res['markdown'] = scrapped_page['data']['markdown']
+        #if scrape:
+            #scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
+            #res['markdown'] = scrapped_page['data']['markdown']
     del result['results']
     del result['suggestions']
     del result['infoboxes']
@@ -116,6 +140,13 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     del result['query']
     del result['unresponsive_engines']
     del result['number_of_results']
+    #return result
+
+    if scrape:
+        all_urls = [item['url'] for item in result['data']]
+        scrapped_page = await batch_scrape_get(urls=all_urls, backend=None, api_key=None, endpoint=None)
+        result['data'] = combined_search_scrape(result, scrapped_page['data'])
+    
     return result
 
 # Firecrawl scrape endpoint
@@ -129,6 +160,50 @@ async def firecrawl_scrape(url: str, api_key: Optional[str] = Query(None), endpo
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
     result['backend'] = "firecrawl"
     return result
+
+@app.api_route("/test", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"])
+async def test_webhook(request: Request):
+    print("Method:", request.method)
+    print("Headers:", request.headers)
+    print("Query params:", request.query_params)
+    try:
+        body = await request.json()
+        print("Body:", body)
+    except Exception:
+        print("Body: (Not JSON)")
+    return {"status": "ok"}
+
+# Firecrawl batch scrape endpoint
+@app.get("/batch/scrape/firecrawl") ################""
+async def firecrawl_batch_scrape(urls: list[str], api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
+    endpoint = get_endpoint(endpoint, "FIRECRAWL_BATCH_SCRAPE_ENDPOINT", FIRECRAWL_BATCH_SCRAPE_ENDPOINT_DEFAULT)
+    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    body = {"urls": urls}#, "webhook": "http://192.168.10.121:8000/test"}
+    print(f"Scraping {urls} with Firecrawl on {endpoint}")
+
+    result = await make_request(endpoint, params=body, headers=headers, method="POST")
+    result_url = result['url']
+    result_url = result_url.replace('https','http')
+    print(result_url)
+    #result_url['backend'] = "firecrawl"
+
+    # Poll for result
+    timeout = 60
+    start_time = time.time()
+    while True:
+         if time.time() - start_time > timeout:
+             #raise TimeoutError(f"Task {task_id} timeout")
+             raise HTTPException(status_code=400, detail="Timeout exceeded")
+
+         result = await make_request(result_url, params=body, headers=headers, method="GET")
+
+         if result["status"] == "completed":
+            return result
+             
+         time.sleep(1)
+    
+    
 
 # Tavily scrape endpoint
 @app.get("/scrape/tavily")
@@ -146,6 +221,39 @@ async def tavily_scrape(url: str, api_key: Optional[str] = Query(None)):
     result['data']['metadata']['url'] = result['results'][0]['url'] 
     del result['results']
     return result
+
+
+
+# Tavily batch scrape endpoint
+@app.get("/batch/scrape/tavily")
+async def tavily_batch_scrape(urls: list[str] = Query(), api_key: Optional[str] = Query(None)):
+    api_key = get_api_key(api_key, "TAVILY_API_KEY")
+    endpoint = "https://api.tavily.com/extract"
+    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    body = {"urls": urls}
+    print(f"Scraping {urls} with Tavily")
+    result = await make_request(endpoint, params=body, headers=headers, method="POST")
+    
+    result['data'] = {}
+    result['data']['markdown'] = result['results'][0]['raw_content']
+    result['data']['metadata'] = {}
+    result['data']['metadata']['url'] = result['results'][0]['url'] 
+    
+    cleaned_result = {}
+    cleaned_result['backend'] = "tavily"
+    cleaned_result['data'] = []
+
+    for res in result['results']:
+        cleaned_1result = {}
+        cleaned_1result['markdown'] = res['raw_content'] 
+        cleaned_1result['metadata'] = {}
+        cleaned_1result['metadata']['url'] = res['url'] 
+
+        cleaned_result['data'].append(cleaned_1result)
+        # cleaned_result['data']['metadata']['title'] = result['result']['title'] 
+
+    return cleaned_result
+
 
 
 # Crawl4ai endpoint
@@ -222,6 +330,38 @@ async def crawl4ai_scrape(url: str, api_key: Optional[str] = Query(None), endpoi
 
     #     time.sleep(1)
             
+
+
+# Crawl4ai batch scrape endpoint
+@app.get("/batch/scrape/crawl4ai")
+async def crawl4ai_batch_scrape(urls: list[str] = Query(), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    api_key = get_api_key(api_key, "CRAWL4AI_API_KEY")
+    params = {"urls": urls}
+    endpoint = get_endpoint(endpoint, "CRAWL4AI_ENDPOINT")
+    endpoint = endpoint.rstrip('/')
+    query_url = f"{endpoint}/crawl_sync"  ## synchronous
+    headers = {"Authorization": f"Bearer {api_key}"}
+    print(f"Scraping {urls} with Crawl4AI on {endpoint}")
+
+    result = await make_request(query_url, headers=headers, params=params, method="POST")
+    cleaned_result = {}
+    cleaned_result['backend'] = "crawl4ai"
+    cleaned_result['data'] = []
+
+    if result["status"] == "completed":
+        for res in result['results']:
+            cleaned_1result = {}
+            cleaned_1result['markdown'] = res['markdown'] 
+            cleaned_1result['metadata'] = res['metadata'] 
+            cleaned_1result['metadata']['statusCode'] = res['status_code'] 
+            cleaned_1result['metadata']['url'] = res['url'] 
+
+            cleaned_result['data'].append(cleaned_1result)
+            # cleaned_result['data']['metadata']['title'] = result['result']['title'] 
+
+    return cleaned_result
+
+
 @app.get("/scrape")
 @app.get("/v1/scrape")
 async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
@@ -235,7 +375,7 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
             backend = "jina"
 
     if backend == "jina":
-        result = await jina_reader(url, api_key=api_key, endpoint=endpoint)
+        result = await jina_reader_scrape(url, api_key=api_key, endpoint=endpoint)
         return result
 
     elif backend == "firecrawl":
@@ -273,10 +413,9 @@ async def scrape_post(body: ScrapeQuery):
 async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(None), google_cse_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     google_cse_id = get_api_key(google_cse_id, "GOOGLE_CSE_ID") 
     google_cse_key = get_api_key(google_cse_key, "GOOGLE_CSE_KEY")
-    if limit > 0:
-        num = limit
-    else:
-        num = SEARCH_RESULT_NUMBER_DEFAULT
+
+    num = limit
+
     url = "https://customsearch.googleapis.com/customsearch/v1"
     params = {"q": query, "cx": google_cse_id, "key": google_cse_key, "num": num}
     print(f"Searching {query} with Google")
@@ -296,15 +435,18 @@ async def google_cse_search(query: str, google_cse_id: Optional[str] = Query(Non
         if 'pagemap' in res: del res['pagemap']
         del res['link']
         del res['kind']
-        if scrape:
-            scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
-            res['markdown'] = scrapped_page['data']['markdown']
     del result['items']
     del result['kind']
     del result['url']
     del result['queries']
     del result['searchInformation']
     del result['context']
+
+    if scrape:
+        all_urls = [item['url'] for item in result['data']]
+        scrapped_page = await batch_scrape_get(urls=all_urls, backend=None, api_key=None, endpoint=None)
+        result['data'] = combined_search_scrape(result, scrapped_page['data'])
+
     return result
 
 
@@ -328,10 +470,8 @@ async def firecrawl_search(query: str, api_key: Optional[str] = Query(None), lim
     api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
     endpoint = get_endpoint(None, "FIRECRAWL_SEARCH_ENDPOINT", FIRECRAWL_SEARCH_ENDPOINT_DEFAULT)
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
-    if limit > 0 :
-        number_of_results = limit
-    else:
-        number_of_results = SEARCH_RESULT_NUMBER_DEFAULT
+    
+    number_of_results = limit
 
     body = {"query": query}
     if scrape:
@@ -350,10 +490,9 @@ async def firecrawl_search(query: str, api_key: Optional[str] = Query(None), lim
 async def serpapi_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "SERPAPI_KEY")
     endpoint = "https://serpapi.com/search"
-    if limit > 0:
-        num = limit
-    else:
-        num = SEARCH_RESULT_NUMBER_DEFAULT
+    
+    num = limit
+
     params = {"q": query, "api_key": api_key, "num": num}
     print(f"Searching {query} with SerpAPI")
     result = await make_request(endpoint, params=params)
@@ -388,6 +527,13 @@ async def serpapi_search(query: str, api_key: Optional[str] = Query(None), limit
             res['markdown'] = scrapped_page['data']['markdown']
     del result['organic_results']
     result['success'] =  True
+
+
+    if scrape:
+        all_urls = [item['url'] for item in result['data']]
+        scrapped_page = await batch_scrape_get(urls=all_urls, backend=None, api_key=None, endpoint=None)
+        result['data'] = combined_search_scrape(result, scrapped_page['data'])
+
     return result
 
 # Tavily search endpoint
@@ -395,10 +541,9 @@ async def serpapi_search(query: str, api_key: Optional[str] = Query(None), limit
 async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "TAVILY_API_KEY")
     endpoint = "https://api.tavily.com/search"
-    if limit>0:
-        max_results = limit
-    else:
-        max_results = 5
+
+    max_results = limit
+    
     body = {"query": query, "max_results": max_results}
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
     print(f"Searching {query} with tavily")
@@ -412,6 +557,7 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit:
         del res['raw_content']
         del res['content']
         if scrape:
+            all_urls = [item['url'] for item in result['data']]
             scrapped_page = await scrape_get(url=res['url'], backend=None, api_key=None, endpoint=None)
             res['markdown'] = scrapped_page['data']['markdown']
     del result['results']
@@ -424,7 +570,7 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit:
 
 # Jina Reader endpoint
 @app.get("/scrape/jina")
-async def jina_reader(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+async def jina_reader_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = api_key or os.environ.get("JINA_API_KEY") 
     endpoint = get_endpoint(endpoint, "JINA_ENDPOINT", JINA_ENDPOINT_DEFAULT)
     headers = {"Accept": "application/json"}
@@ -465,6 +611,10 @@ async def search_get(query: str, backend: Optional[str] = Query(None), endpoint:
         else:
             raise HTTPException(status_code=400, detail="Search backend missing.")
 
+
+    if not limit:
+        limit = SEARCH_RESULT_NUMBER_DEFAULT
+
     if backend == "google":
         result = await google_cse_search(query, google_cse_id=google_cse_id, google_cse_key=google_cse_key, limit=limit, scrape=scrape)
         return result
@@ -500,6 +650,7 @@ class SearchQuery(BaseModel):
     google_cse_key: str | None = None
     google_cse_id: str | None = None
     scrapeOptions: dict = []
+    scrape: bool | None = None
 
 
 #search combined endpoint
@@ -515,8 +666,54 @@ async def search_post(body: SearchQuery):
     google_cse_id = body.google_cse_id
     limit = body.limit
     scrapeOptions = body.scrapeOptions
-    if scrapeOptions and scrapeOptions["formats"] and scrapeOptions["formats"][0] == "markdown":
+    scrape = body.scrape
+    if scrape or (scrapeOptions and scrapeOptions["formats"] and scrapeOptions["formats"][0] == "markdown"):
         scrape = True
     else:
         scrape = False
     return await search_get(query, backend, endpoint, google_cse_id, google_cse_key, api_key, limit, scrape)
+
+
+
+
+
+
+@app.get("/v1/batch/scrape")
+async def batch_scrape_get(urls: list[str] = Query(), backend: Optional[str] = Query(None), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
+    if backend:
+        if backend not in ["firecrawl", "crawl4ai", "tavily"]:
+            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
+    else: # parameter backend not defined
+        if SCRAPE_BACKEND:
+            backend = SCRAPE_BACKEND
+        else: 
+            raise HTTPException(status_code=400, detail="Missing backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
+
+    if backend == "firecrawl":
+        result = await firecrawl_batch_scrape(urls, api_key=api_key, endpoint=endpoint)
+        return result
+
+    elif backend == "crawl4ai":
+        result = await crawl4ai_batch_scrape(urls, api_key=api_key, endpoint=endpoint)
+        return result
+
+    elif backend == "tavily":
+        result = await tavily_batch_scrape(urls, api_key=api_key)
+        return result
+
+
+class BatchScrapeQuery(BaseModel):
+    urls: list[str]
+    backend: str | None = None
+    api_key: str | None = None
+    endpoint: str | None = None
+
+                
+@app.post("/v1/batch/scrape")
+async def batch_scrape_post(body: BatchScrapeQuery):
+    urls = body.urls
+    backend = body.backend
+    api_key = body.api_key
+    endpoint = body.endpoint
+    
+    return await batch_scrape_get(urls, backend, api_key, endpoint)
