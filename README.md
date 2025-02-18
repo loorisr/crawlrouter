@@ -44,6 +44,9 @@ The API relies on the following environment variables:
 *   `SEARCH_BACKEND`: Search endpoint default backend.
 *   `SCRAPE_BACKEND`: Scrape endpoint default backend.
 
+*   `SEARCH_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'google,searxng,serpapi'
+*   `SCRAPE_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'crawl4ai,jina'
+
 You can also pass the API keys and endpoint via query parameters.
 
 ## Running the API
