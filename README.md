@@ -2,7 +2,7 @@
 
 This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, Firecrawl, Jina, Google CSE and Crawl4ai.
 
-I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software can is compatible with Firecrawl.
+I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software that is compatible with Firecrawl.
 
 ## Prerequisites
 
@@ -131,14 +131,18 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 
 ## Self-hostable tools
 * Jina Reader: https://github.com/intergalacticalvariable/reader
-* Firecrawl: https://github.com/devflowinc/firecrawl-simple/
+* Firecrawl: https://github.com/mendableai/firecrawl or https://github.com/devflowinc/firecrawl-simple/
 * SearXNG: https://github.com/searxng/searxng
 * Crawl4AI https://github.com/unclecode/crawl4ai
+
+## Docker hub image
+
+`docker pull loorisr/crawlrouter:latest`
 
 ## Roadmap
 
 I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
 
 Ideas for the future:
-* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), Bing Search API
+* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), [Markdowner](https://github.com/supermemoryai/markdowner), Bing Search API
 * complete the API implementation (scraping options) 
