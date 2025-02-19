@@ -1,6 +1,6 @@
 # CrawlRouter
 
-This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, Firecrawl, Jina, Google CSE and Crawl4ai.
+This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, Firecrawl, Jina, Google CSE, Scraping Bee, Scraping Ant, Markdowner and Crawl4ai.
 
 I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software that is compatible with Firecrawl.
 
@@ -33,6 +33,13 @@ The API relies on the following environment variables:
 
 *   `JINA_API_KEY`: API key for Jina.
 *   `JINA_ENDPOINT`: Endpoint for Jina.
+
+*   `MARKDOWNER_API_KEY`: API key for Markdowner.
+*   `SCRAPINGANT_API_KEY`: API key for Scraping Ant.
+*   `SCRAPINGANT_JS_RENDERING`: (boolean). Enable JS rendering for Scraping Ant.
+  
+*   `SCRAPINGBEE_API_KEY`: API key for Scrapint Bee.
+*   `SCRAPINGBEE_JS_RENDERING`: (boolean). Enable JS rendering for Scraping Bee.
 
 *   `SERPAPI_KEY`: API key for SerpAPI.
 
@@ -118,7 +125,7 @@ This will start the API server at `http://0.0.0.0:8000`.
     *   `url`: URL to scrape (required).
     *   `api_key`: API key (optional). Can be set with environment variable.
     *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai` or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 *   `/scrape/firecrawl` (GET): Firecrawl scrape endpoint.
     *   `url`: URL to scrape (required).
@@ -135,6 +142,15 @@ This will start the API server at `http://0.0.0.0:8000`.
 *   `/scrape/tavily` (GET): Tavily endpoint.
     *   `url`: URL to scrape (required).
     *   `api_key`: API key (required). Can be set with environment variable.
+*   `/scrape/scrapingant` (GET): Scraping Ant endpoint.
+    *   `url`: URL to scrape (required).
+    *   `api_key`: API key (required). Can be set with environment variable.
+*   `/scrape/scrapingbee` (GET): Scraping Bee endpoint.
+    *   `url`: URL to scrape (required).
+    *   `api_key`: API key (required). Can be set with environment variable.
+*   `/scrape/markdowner` (GET): Markdowner endpoint.
+    *   `url`: URL to scrape (required).
+    *   `api_key`: API key (optional). Can be set with environment variable.
 
 ## Example Usage
 
@@ -160,5 +176,5 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
 
 Ideas for the future:
-* add new backends: [ScrapingAnt](https://scrapingant.com/), [ScrapingBee](https://www.scrapingbee.com/), [Markdowner](https://github.com/supermemoryai/markdowner), Bing Search API
+* add new backends: https://www.diffbot.com, https://scrappey.com/, https://www.search1api.com/, https://www.serp.ing/, https://scrapeops.io/, https://scrapingrobot.com/, Bing Search API
 * complete the API implementation (scraping options) 
