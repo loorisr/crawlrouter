@@ -688,7 +688,7 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit:
 async def jina_reader_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = api_key or os.environ.get("JINA_API_KEY") 
     endpoint = get_endpoint(endpoint, "JINA_ENDPOINT", JINA_ENDPOINT_DEFAULT)
-    headers = {"Content-Type": "application/json"}
+    headers = {"Accept": "application/json"}
     if api_key:
         headers.update({"Authorization": f"Bearer {api_key}"})
     url = f"{endpoint.rstrip('/')}/{url}"
