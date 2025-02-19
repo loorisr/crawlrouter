@@ -30,6 +30,11 @@ SCRAPINGANT_JS_RENDERING = os.getenv("SCRAPINGANT_JS_RENDERING", 'False').lower(
 SCRAPINGBEE_JS_RENDERING = os.getenv("SCRAPINGBEE_JS_RENDERING", 'False').lower() in ('true', '1', 't')
 
 
+SEARXNG_ENGINES = os.getenv("SEARXNG_ENGINES")
+SEARXNG_CATEGORIES = os.getenv("SEARXNG_CATEGORIES")
+SEARXNG_LANGUAGE = os.getenv("SEARXNG_LANGUAGE")
+
+
 app = FastAPI(    title="CrawlRouter",
    # description=description,
     summary="Unified API for Searching and Crawling",
@@ -115,6 +120,17 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     url = f"{endpoint}/search"
     params = {"q": query, "format": "json"}
 
+    if SEARXNG_ENGINES:
+        params.update({"engines": SEARXNG_ENGINES})
+
+    if SEARXNG_CATEGORIES:
+        params.update({"categories": SEARXNG_CATEGORIES})
+
+    if SEARXNG_LANGUAGE:
+        params.update({"language": SEARXNG_LANGUAGE})
+    
+    print(params)
+
     headers = {"Accept": "text/html", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0", "Accept-Language": "en,fr", "Accept-Encoding": "gzip,deflate"}
 
     print(f"Searching {query} with searxng on {endpoint}")
@@ -162,7 +178,7 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
 async def firecrawl_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
     endpoint = get_endpoint(endpoint, "FIRECRAWL_SCRAPE_ENDPOINT", FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT)
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {"url": url}
     print(f"Scraping {url} with Firecrawl on {endpoint}")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
@@ -175,7 +191,7 @@ async def firecrawl_scrape(url: str, api_key: Optional[str] = Query(None), endpo
 async def scrapingant_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "SCRAPINGANT_API_KEY")
     endpoint = "https://api.scrapingant.com/v2/markdown"
-    headers = {"Accept": "application/json"}
+    headers = {"Content-Type": "application/json"}
     params = {"url": url, "x-api-key": api_key, "return_page_source": not SCRAPINGANT_JS_RENDERING}
     print(f"Scraping {url} with Scraping Ant")
     result = {}
@@ -192,7 +208,7 @@ async def scrapingant_scrape(url: str, api_key: Optional[str] = Query(None), end
 async def scrapingbee_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "SCRAPINGBEE_API_KEY")
     endpoint = "https://app.scrapingbee.com/api/v1"
-    headers = {"Accept": "application/json"}
+    headers = {"Content-Type": "application/json"}
     params = {"url": url, "api_key": api_key, "render_js": SCRAPINGBEE_JS_RENDERING, "json_response": True}
     print(f"Scraping {url} with Scraping Bee")
     scrapped_page = await make_request(endpoint, params=params, headers=headers, method="GET")
@@ -209,9 +225,13 @@ async def scrapingbee_scrape(url: str, api_key: Optional[str] = Query(None), end
 # Markdowner scrape endpoint
 @app.get("/scrape/markdowner")
 async def markdowner_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
-    ##api_key = get_api_key(api_key, "MARKDOWNER_API_KEY")
+    api_key = api_key or os.environ.get("MARKDOWNER_API_KEY") 
     endpoint = "https://md.dhr.wtf/"
-    headers = {"content-type": "application/json"}
+    headers = {"Content-Type": "application/json"}
+
+    if api_key:
+        headers.update({"Authorization": f"Bearer {api_key}"})
+
     params = {"url": url}
     print(f"Scraping {url} with Markdowner")
 
@@ -254,7 +274,7 @@ async def test_webhook(request: Request):
 async def firecrawl_batch_scrape(urls: list[str], api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
     endpoint = get_endpoint(endpoint, "FIRECRAWL_BATCH_SCRAPE_ENDPOINT", FIRECRAWL_BATCH_SCRAPE_ENDPOINT_DEFAULT)
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {"urls": urls}#, "webhook": "http://192.168.10.121:8000/test"}
     print(f"Scraping {urls} with Firecrawl on {endpoint}")
 
@@ -286,7 +306,7 @@ async def firecrawl_batch_scrape(urls: list[str], api_key: Optional[str] = Query
 async def tavily_scrape(url: str, api_key: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "TAVILY_API_KEY")
     endpoint = "https://api.tavily.com/extract"
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {"urls": url}
     print(f"Scraping {url} with Tavily")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
@@ -305,7 +325,7 @@ async def tavily_scrape(url: str, api_key: Optional[str] = Query(None)):
 async def tavily_batch_scrape(urls: list[str] = Query(), api_key: Optional[str] = Query(None)):
     api_key = get_api_key(api_key, "TAVILY_API_KEY")
     endpoint = "https://api.tavily.com/extract"
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {"urls": urls}
     print(f"Scraping {urls} with Tavily")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
@@ -442,8 +462,8 @@ async def crawl4ai_batch_scrape(urls: list[str] = Query(), api_key: Optional[str
 @app.get("/v1/scrape")
 async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     if backend:
-        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee' or 'tavily.")
+        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee", "markdowner"]:
+            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee', 'markdowner' or 'tavily.")
     else: # parameter backend not defined
         if SCRAPE_BACKEND_ROTATE:
             # Split the string by comma to get a list of options
@@ -477,6 +497,10 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
 
     elif backend == "scrapingbee":
         result = await scrapingbee_scrape(url, api_key=api_key)
+        return result
+
+    elif backend == "markdowner":
+        result = await markdowner_scrape(url, api_key=api_key)
         return result
 
 
@@ -558,7 +582,7 @@ async def brave_search(query: str, api_key: Optional[str] = Query(None)):
 async def firecrawl_search(query: str, api_key: Optional[str] = Query(None), limit: Optional[int] = Query(None), scrape: Optional[bool] = Query(None)):
     api_key = get_api_key(api_key, "FIRECRAWL_API_KEY")
     endpoint = get_endpoint(None, "FIRECRAWL_SEARCH_ENDPOINT", FIRECRAWL_SEARCH_ENDPOINT_DEFAULT)
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     
     number_of_results = limit
 
@@ -636,7 +660,7 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit:
     max_results = limit
     
     body = {"query": query, "max_results": max_results}
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     print(f"Searching {query} with tavily")
     result = await make_request(endpoint, params=body, headers=headers, method="POST")
     result['backend'] = "tavily"
@@ -664,10 +688,9 @@ async def tavily_search(query: str, api_key: Optional[str] = Query(None), limit:
 async def jina_reader_scrape(url: str, api_key: Optional[str] = Query(None), endpoint: Optional[str] = Query(None)):
     api_key = api_key or os.environ.get("JINA_API_KEY") 
     endpoint = get_endpoint(endpoint, "JINA_ENDPOINT", JINA_ENDPOINT_DEFAULT)
-    headers = {"Accept": "application/json"}
+    headers = {"Content-Type": "application/json"}
     if api_key:
-        #api_key = get_api_key(jina_api_key, "JINA_API_KEY")
-        headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+        headers.update({"Authorization": f"Bearer {api_key}"})
     url = f"{endpoint.rstrip('/')}/{url}"
     print(f"Scraping {url} with Jina on {endpoint}")
     result = await make_request(url, headers=headers)
