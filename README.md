@@ -4,18 +4,20 @@ This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, 
 
 I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software that is compatible with Firecrawl.
 
-## Prerequisites
+It allows to rotate between providers to help staying within the rate limits.
 
-*   Python 3.7+
-*   FastAPI
-*   httpx
-*   uvicorn (for running the server)
+## Prerequisites
 
 Install the dependencies:
 
 ```bash
-pip install fastapi httpx uvicorn
+pip install fastapi[standard]
+pip install -r requirements.txt
+fastapi run app.py --reload or uvicorn app:app --reload --host 0.0.0.0
 ```
+
+This will start the API server at `http://0.0.0.0:8000`.
+
 
 ## Environment Variables
 
@@ -58,15 +60,10 @@ The API relies on the following environment variables:
 *   `SEARCH_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'google,searxng,serpapi'
 *   `SCRAPE_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'crawl4ai,jina'
 
+*   `LOGGING`: Boolean. Enable logging of requests to log/requests.csv
+
 You can also pass the API keys and endpoint via query parameters.
 
-## Running the API
-
-```bash
-uvicorn app:app --reload --host 0.0.0.0
-```
-
-This will start the API server at `http://0.0.0.0:8000`.
 
 ## Endpoints
 

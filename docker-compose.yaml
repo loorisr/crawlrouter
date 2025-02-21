@@ -23,6 +23,7 @@ services:
       - CRAWL4AI_ENDPOINT=
       - CRAWL4AI_TIMEOUT=30
       - HTTP_TIMEOUT=30
+      - LOGGING=True
     security_opt:
       - no-new-privileges=true
     read_only: true
