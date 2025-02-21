@@ -171,6 +171,25 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 * SearXNG: https://github.com/searxng/searxng
 * Crawl4AI https://github.com/unclecode/crawl4ai
 
+## Comparaison of API providers
+### SERP API
+
+| Provider     | Free tier    | Price                            | Link                                                                      |
+|--------------|--------------|----------------------------------|---------------------------------------------------------------------------|
+| Bing         | 1000 / month | $15 /1000                        | https://www.microsoft.com/en-us/bing/apis/pricing                         |
+| Google       | 100 / day    | $5 / 1000                        | https://developers.google.com/custom-search/v1/overview?hl=fr             |
+| Brave        | 2000 / month | $5 / 1000                        | https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai |
+| Tavily       | 1000 / month | $0.008 / 1                       | https://tavily.com/                                                       |
+| SerpApi      | 100 / month  | $75 / 5000 / month               | https://serpapi.com/                                                      |
+| Firecrawl    | 500 onetime  | $16 / 3000 / month<br>$11 / 1000 | https://www.firecrawl.dev/                                                |
+| Serp.ing     | 1000 / month | $29 / 12000 / month              | https://www.serp.ing/                                                     |
+| Search1API   | no           | $0.99 / 1000 / month             | https://www.search1api.com/                                               |
+| Spider.cloud | $2 onetime   | $0.005 / 1                       | https://spider.cloud/                                                     |
+| Brightdata   | no           | $1.5 / 1000                      | https://brightdata.fr/pricing/serp                                        |
+
+
+### Scraping API
+
 ## Docker hub image
 
 `docker pull loorisr/crawlrouter:latest`
