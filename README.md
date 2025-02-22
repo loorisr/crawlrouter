@@ -30,6 +30,7 @@ The API relies on the following environment variables:
 *   `FIRECRAWL_API_KEY`: API key for Firecrawl.
 *   `FIRECRAWL_SEARCH_ENDPOINT`: Endpoint for Firecrawl Search API.
 *   `FIRECRAWL_SCRAPE_ENDPOINT`: Endpoint for Firecrawl Scraping API.
+*   `FIRECRAWL_BATCH_SCRAPE_ENDPOINT`: Endpoint for Firecrawl Batch Scrape API.
 
 *   `CRAWL4AI_API_KEY`: API key for Crawl4ai.
 *   `CRAWL4AI_ENDPOINT`: Endpoint for Crawl4ai.
