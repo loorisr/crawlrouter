@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   crawlrouter:
     container_name: crawlrouter
-    build: https://github.com/loorisr/crawlrouter.git
+    build: .
     ports:
       - "8000:8000"
     environment:

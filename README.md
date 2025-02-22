@@ -60,6 +60,7 @@ The API relies on the following environment variables:
 *   `SCRAPE_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'crawl4ai,jina'
 
 *   `LOG_FILE`: Path of the log file
+*   `PORT`: Port to run the app. Default is 8000
 
 You can also pass the API keys and endpoint via query parameters.
 
