@@ -1,4 +1,3 @@
-fastapi
+fastapi[standard]
 httpx
-uvicorn
 markdownify

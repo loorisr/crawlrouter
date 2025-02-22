@@ -1,18 +1,23 @@
-# Use an official Python runtime as a parent image
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 
-# Set the working directory to /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+COPY requirements.txt requirements.txt
 
-# Install any needed packages specified in requirements.txt
-# Assuming there is a requirements.txt, let's create it first
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
+# copy the application
+COPY . .
 
-# Run app.py when the container launches
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+ARG PORT
+ENV PORT=${PORT:-8000}
+
+EXPOSE ${PORT}
+
+# Command to run the application
+CMD fastapi run app.py --host 0.0.0.0 --port $PORT

@@ -11,7 +11,6 @@ It allows to rotate between providers to help staying within the rate limits.
 Install the dependencies:
 
 ```bash
-pip install fastapi[standard]
 pip install -r requirements.txt
 fastapi run app.py --reload or uvicorn app:app --reload --host 0.0.0.0
 ```
@@ -60,7 +59,7 @@ The API relies on the following environment variables:
 *   `SEARCH_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'google,searxng,serpapi'
 *   `SCRAPE_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'crawl4ai,jina'
 
-*   `LOGGING`: Boolean. Enable logging of requests to log/requests.csv
+*   `LOG_FILE`: Path of the log file
 
 You can also pass the API keys and endpoint via query parameters.
 

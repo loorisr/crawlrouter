@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, HttpUrl
-from typing import Union, List, Optional
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, HttpUrl, root_validator
+from typing import Union, List, Optional, Literal
 from markdownify import markdownify as md
 import os
 import time
@@ -17,8 +17,8 @@ FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/scrape"
 FIRECRAWL_BATCH_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/batch/scrape"
 JINA_ENDPOINT_DEFAULT = "https://r.jina.ai/"
 
-CRAWL4AI_TIMEOUT = (float)(os.getenv("CRAWL4AI_TIMEOUT")) or 30.
-HTTP_TIMEOUT = (float)(os.getenv("HTTP_TIMEOUT")) or 30.
+CRAWL4AI_TIMEOUT = (int)(os.getenv("CRAWL4AI_TIMEOUT", 30))
+HTTP_TIMEOUT = (int)(os.getenv("HTTP_TIMEOUT", 30))
 
 SEARCH_BACKEND = os.getenv("SEARCH_BACKEND")
 SCRAPE_BACKEND = os.getenv("SCRAPE_BACKEND")
@@ -31,17 +31,60 @@ SEARCH_RESULT_NUMBER_DEFAULT = 5
 SCRAPINGANT_JS_RENDERING = os.getenv("SCRAPINGANT_JS_RENDERING", 'False').lower() in ('true', '1', 't')
 SCRAPINGBEE_JS_RENDERING = os.getenv("SCRAPINGBEE_JS_RENDERING", 'False').lower() in ('true', '1', 't')
 
-
 SEARXNG_ENGINES = os.getenv("SEARXNG_ENGINES")
 SEARXNG_CATEGORIES = os.getenv("SEARXNG_CATEGORIES")
 SEARXNG_LANGUAGE = os.getenv("SEARXNG_LANGUAGE")
 
-LOGGING = os.getenv("LOGGING", 'False').lower() in ('true', '1', 't')
+LOG_FILE = os.getenv("LOG_FILE")
+
+class FirecrawlScapeModel(BaseModel):
+    url: HttpUrl
+    formats: list[Literal["markdown", "html", "rawHtml", "links", "screenshot", "screenshot@fullPage", "json"]] = ["markdown"]
+    onlyMainContent: bool = True
+    includeTags: list[str] = None
+    excludeTags: list[str] = None
+    headers: dict = None
+    waitFor: NonNegativeInt = 0
+    mobile: bool = False
+    skipTlsVerification: bool = False
+    timeout: NonNegativeInt = 30000
+    jsonOptions: dict = None
+    actions: list[dict] = None
+    location: dict = {"country": "US", "languages":""}
+    removeBase64Images: bool = False
+    blockAds: bool = True
+    proxy: Literal["basic", "stealth"] = None
+    # additional CrawlRouter fields
+    backend: str | None = None
+    api_key: str | None = None
+    endpoint: str | None = None
+
+
+class ScrapeOptions(BaseModel):
+    formats: list[Literal["markdown", "html", "rawHtml", "links", "screenshot", "screenshot@fullPage", "json"]] = None
+
+class FirecrawlSearchModel(BaseModel):
+    query: str
+    limit: PositiveInt = SEARCH_RESULT_NUMBER_DEFAULT
+    tbs: str | None = None
+    backend: str | None = None
+    lang: str = "en"
+    country: str = "us"
+    location: str | None = None
+    timeout: NonNegativeInt = 60000
+    scrapeOptions: ScrapeOptions | None = {}
+    ## CrawlRouter specific
+    backend: str | None = None
+    api_key: str | None = None
+    endpoint: str | None = None
+    google_cse_key: str | None = None
+    google_cse_id: str | None = None
+    scrape: bool | None = None
 
 app = FastAPI(    title="CrawlRouter",
    # description=description,
-    summary="Unified API for Searching and Crawling",
-    version="0.0.1",
+    summary="Unified API for Searching and Scraping",
+    version="0.0.2",
     contact={
         "name": "loorisr",
         "url": "https://github.com/loorisr/crawlrouter"
@@ -53,9 +96,9 @@ app = FastAPI(    title="CrawlRouter",
 
 
 def log_request(type, url_or_query, backend, endpoint, size, execution_time):
-    if LOGGING:
+    if LOG_FILE:
         try:
-            with open('logs/requests.csv', 'a', newline='') as csvfile:
+            with open(LOG_FILE, 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 if csvfile.tell() == 0: # Write header if file is empty
                     writer.writerow(['Date/Time', 'Type', 'URL/Query', 'Backend', 'Endpoint', 'Size', 'API execution_time'])
@@ -149,8 +192,6 @@ async def searxng_search(query: str, api_key: Optional[str] = Query(None), endpo
     if SEARXNG_LANGUAGE:
         params.update({"language": SEARXNG_LANGUAGE})
     
-    print(params)
-
     headers = {"Accept": "text/html", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0", "Accept-Language": "en,fr", "Accept-Encoding": "gzip,deflate"}
 
     print(f"Searching {query} with searxng on {endpoint}")
@@ -505,18 +546,11 @@ async def scrape_get(url: str, backend: Optional[str] = Query(None), api_key: Op
         result = await markdowner_scrape(url, api_key=api_key)
         return result
 
-
-class ScrapeQuery(BaseModel):
-    url: str
-    backend: str | None = None
-    api_key: str | None = None
-    endpoint: str | None = None
-
                 
 @app.post("/scrape")
 @app.post("/v1/scrape")
-async def scrape_post(body: ScrapeQuery):
-    url = body.url
+async def scrape_post(body: FirecrawlScapeModel):
+    url = str(body.url)
     backend = body.backend
     api_key = body.api_key
     endpoint = body.endpoint
@@ -785,23 +819,11 @@ async def search_get(query: str, backend: Optional[str] = Query(None), endpoint:
 
 
 
-class SearchQuery(BaseModel):
-    query: str
-    backend: str | None = None
-    api_key: str | None = None
-    endpoint: str | None = None
-    limit: Optional[int] = SEARCH_RESULT_NUMBER_DEFAULT
-    google_cse_key: str | None = None
-    google_cse_id: str | None = None
-    scrapeOptions: dict = []
-    scrape: bool | None = None
-
-
 #search combined endpoint
 @app.post("/search")
 @app.post("/v0/search")
 @app.post("/v1/search")
-async def search_post(body: SearchQuery):
+async def search_post(body: FirecrawlSearchModel):
     backend = body.backend
     query = body.query
     endpoint = body.endpoint
@@ -809,17 +831,13 @@ async def search_post(body: SearchQuery):
     google_cse_key = body.google_cse_key
     google_cse_id = body.google_cse_id
     limit = body.limit
-    scrapeOptions = body.scrapeOptions
+    scrapeOptions = dict(body.scrapeOptions)
     scrape = body.scrape
     if scrape or (scrapeOptions and scrapeOptions["formats"] and scrapeOptions["formats"][0] == "markdown"):
         scrape = True
     else:
         scrape = False
     return await search_get(query, backend, endpoint, google_cse_id, google_cse_key, api_key, limit, scrape)
-
-
-
-
 
 
 @app.get("/v1/batch/scrape")
@@ -831,8 +849,13 @@ async def batch_scrape_get(urls: list[str] = Query(), backend: Optional[str] = Q
         if SCRAPE_BACKEND_ROTATE:
             # Split the string by comma to get a list of options
             options = SCRAPE_BACKEND_ROTATE.split(',')
+            options.remove("jina") # not compatible with batch scrape
+            options.remove("markdowner") # not compatible with batch scrape
             # Randomly select one of the options
-            backend = random.choice(options)
+            if options:
+                backend = random.choice(options)
+            else:
+                backend = SCRAPE_BACKEND
         elif SCRAPE_BACKEND:
             backend = SCRAPE_BACKEND
         else: 
