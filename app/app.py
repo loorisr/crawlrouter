@@ -37,6 +37,8 @@ SEARXNG_LANGUAGE = os.getenv("SEARXNG_LANGUAGE")
 
 LOG_FILE = os.getenv("LOG_FILE")
 
+last_search_backend = None # to rotate search engine
+last_scrape_backend = None # to rotate scrape engine
 
 app = FastAPI(    title="CrawlRouter",
    # description=description,
@@ -686,19 +688,30 @@ async def scrape_post(
 
     
 async def scrape_single(url: str, backend):
-    if backend:
-        if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee", "markdowner"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee', 'markdowner' or 'tavily.")
-    else: # parameter backend not defined
-        if SCRAPE_BACKEND_ROTATE:
-            # Split the string by comma to get a list of options
-            options = SCRAPE_BACKEND_ROTATE.split(',')
-            # Randomly select one of the options
-            backend = random.choice(options)
-        elif SCRAPE_BACKEND:
-            backend = SCRAPE_BACKEND
-        else: # jina can be used without an API key
-            backend = "jina"
+    if not backend:
+        backend = SCRAPE_BACKEND
+
+    if not backend:
+        backend = "jina"  # jina can be used without an API key
+
+    options = backend.split(',')
+    if SCRAPE_BACKEND_ROTATE == "random":
+        # Split the string by comma to get a list of options
+        # Randomly select one of the options
+        backend = random.choice(options)
+    #elif SCRAPE_BACKEND_ROTATE == "sequential":
+    else:
+        global last_scrape_backend 
+        if last_scrape_backend != None:
+            last_scrape_backend = (last_scrape_backend + 1) % len(options)
+            backend = options[last_scrape_backend]
+
+        else:
+            last_scrape_backend = 0
+            backend = options[last_scrape_backend]
+
+    if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee", "markdowner"]:
+        raise HTTPException(status_code=400, detail=f"Invalid backend '{backend}'. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee', 'markdowner' or 'tavily.")
 
     if backend == "jina":
         result = await jina_reader_scrape(url)
@@ -758,7 +771,7 @@ async def search_post(
     limit = body.limit
     scrapeOptions = dict(body.scrapeOptions)
     
-    if (scrapeOptions and scrapeOptions["formats"] and scrapeOptions["formats"][0] == "markdown"):
+    if (scrapeOptions and scrapeOptions["formats"]):
         scrape = True
     else:
         scrape = False
@@ -767,23 +780,27 @@ async def search_post(
 
 #search combined endpoint
 async def search(query: str, backend: str, limit: int, scrape: bool):
-    if backend:
-        if backend not in ["google", "searxng", "brave", "firecrawl", "serpapi", "tavily"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'google', 'searxng', 'brave', 'firecrawl', 'serpapi' or 'tavily'.")
+    if not backend:
+        backend = SEARCH_BACKEND
+
+    options = backend.split(',')
+    if SEARCH_BACKEND_ROTATE == "random":
+        # Split the string by comma to get a list of options
+        # Randomly select one of the options
+        backend = random.choice(options)
+    #elif SEARCH_BACKEND_ROTATE == "sequential":
     else:
-        if SEARCH_BACKEND_ROTATE:
-            # Split the string by comma to get a list of options
-            options = SEARCH_BACKEND_ROTATE.split(',')
-            # Randomly select one of the options
-            backend = random.choice(options)
-        elif SEARCH_BACKEND:
-            backend = SEARCH_BACKEND
+        global last_search_backend 
+        if last_search_backend != None:
+            last_search_backend = (last_search_backend + 1) % len(options)
+            backend = options[last_search_backend]
+
         else:
-            raise HTTPException(status_code=400, detail="Search backend missing.")
+            last_search_backend = 0
+            backend = options[last_search_backend]
 
-
-    if not limit:
-        limit = SEARCH_RESULT_NUMBER_DEFAULT
+    if backend not in ["google", "searxng", "brave", "firecrawl", "serpapi", "tavily"]:
+        raise HTTPException(status_code=400, detail=f"Invalid backend '{backend}'. Choose from 'google', 'searxng', 'brave', 'firecrawl', 'serpapi' or 'tavily'.")
 
     if backend == "google":
         result = await google_cse_search(query, limit=limit, scrape=scrape)
@@ -828,25 +845,42 @@ async def batch_scrape_post(
     return await batch_scrape(urls, backend)
 
 # combined batch scrape endpoint
-async def batch_scrape(urls: list[str] = Query(), backend: Optional[str] = Query(None)):
-    if backend:
-        if backend not in ["firecrawl", "crawl4ai", "tavily"]:
-            raise HTTPException(status_code=400, detail="Invalid backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
-    else: # parameter backend not defined
-        if SCRAPE_BACKEND_ROTATE:
-            # Split the string by comma to get a list of options
-            options = SCRAPE_BACKEND_ROTATE.split(',')
+async def batch_scrape(urls: list[str], backend: str):
+    if not backend:
+        backend = SCRAPE_BACKEND
+    
+    if not backend:
+        raise HTTPException(status_code=400, detail="Missing backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
+
+    options = backend.split(',')
+    if isinstance(options, list):
+        try:
             options.remove("jina") # not compatible with batch scrape
+        except:
+            pass
+        try:
             options.remove("markdowner") # not compatible with batch scrape
-            # Randomly select one of the options
-            if options:
-                backend = random.choice(options)
-            else:
-                backend = SCRAPE_BACKEND
-        elif SCRAPE_BACKEND:
-            backend = SCRAPE_BACKEND
-        else: 
+        except:
+            pass
+        if not options:
             raise HTTPException(status_code=400, detail="Missing backend. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
+        if SCRAPE_BACKEND_ROTATE == "random":
+            # Split the string by comma to get a list of options
+            # Randomly select one of the options
+            backend = random.choice(options)
+        #elif SCRAPE_BACKEND_ROTATE == "sequential":
+        else:
+            global last_scrape_backend 
+            if last_scrape_backend != None:
+                last_scrape_backend = (last_scrape_backend + 1) % len(options)
+                backend = options[last_scrape_backend]
+
+            else:
+                last_scrape_backend = 0
+                backend = options[last_scrape_backend]
+
+    if backend not in ["firecrawl", "crawl4ai", "tavily"]:
+        raise HTTPException(status_code=400, detail=f"Invalid backend '{backend}'. Choose from 'firecrawl', 'crawl4ai' or 'tavily.")
 
     if backend == "firecrawl":
         result = await firecrawl_batch_scrape(urls)

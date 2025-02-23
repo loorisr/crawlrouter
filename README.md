@@ -55,11 +55,11 @@ The API relies on the following environment variables:
 *   `GOOGLE_CSE_KEY`: API Key for Google Custom Search Engine.
 *   `GOOGLE_CSE_ID`: ID of Google Custom Search Engine.
 
-*   `SEARCH_BACKEND`: Search endpoint default backend.
-*   `SCRAPE_BACKEND`: Scrape endpoint default backend.
+*   `SEARCH_BACKEND`: Search endpoint default backend. Can be a comma-separated list: 'google,searxng,serpapi'
+*   `SCRAPE_BACKEND`: Scrape endpoint default backend. Can be a comma-separated list: 'tavily,firecrawl,crawl4ai'
 
-*   `SEARCH_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'google,searxng,serpapi'
-*   `SCRAPE_BACKEND_ROTATE`: If defined, rotate randomly from the list for the search backend. Example : 'crawl4ai,jina'
+*   `SEARCH_BACKEND_ROTATE`: How to rotate the search backend: random or sequential. Default: sequential
+*   `SCRAPE_BACKEND_ROTATE`: How to rotate the scrape backend: random or sequential. Default: sequential
 
 *   `LOG_FILE`: Path of the log file
 *   `PORT`: Port to run the app. Default is 8000
@@ -80,18 +80,18 @@ You can also pass the API keys and endpoint via query parameters.
     or `/v1/search`
     *   `query`: Search query (required).
     *   `scrapeOptions` : {"formats": ["markdown"] }. If set, it will also scrape the page of each search result.
-    *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily`). Defaults to `SEARCH_BACKEND` environment variable if not provided.
+    *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily` or a comma-separated list). Defaults to `SEARCH_BACKEND` environment variable if not provided.
 
 
 ### Scrape Endpoints
 
 *   `/v1/scrape?backend=` (POST): Single page scrape endpoint.
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily` or a comma-separated list). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 *   `/v1/batch/scrape?backend=` (POST): Multiple page scrape endpoint
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily` or a comma-separated list). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 
 ## Self-hostable tools
@@ -147,4 +147,3 @@ Ideas for the future:
 * complete the API implementation to be more compatible with Firecrawl (searching/scraping options) 
 * add rate limiting management
 * improve code: 1 file per backend
-* backend rotation: sequential
