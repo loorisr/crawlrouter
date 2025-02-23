@@ -12,7 +12,7 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # copy the application
-COPY app.py app.py
+COPY app .
 
 ARG PORT
 ENV PORT=${PORT:-8000}

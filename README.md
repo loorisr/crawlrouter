@@ -2,9 +2,9 @@
 
 This is a API that is Firecrawl-compatible and integrates with Tavily, Searxng, Firecrawl, Jina, Google CSE, Scraping Bee, Scraping Ant, Markdowner and Crawl4ai.
 
-I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software that is compatible with Firecrawl.
+I've developed this tool because the different searching and scraping API available don’t have the same format and are not compatible. This software helps to use the tool of your choice with a software that is compatible with Firecrawl API.
 
-It allows to rotate between providers to help staying within the rate limits.
+It also allows to rotate between providers to stay within the rate limits.
 
 ## Prerequisites
 
@@ -12,6 +12,7 @@ Install the dependencies:
 
 ```bash
 pip install -r requirements.txt
+cd app
 fastapi run app.py --reload or uvicorn app:app --reload --host 0.0.0.0
 ```
 
@@ -75,97 +76,27 @@ You can also pass the API keys and endpoint via query parameters.
 
 ### Search Endpoints
 
-*   `/search` (GET/POST): Combined search endpoint.
+*   `/search?backend=` (POST): Search endpoint.
     or `/v1/search`
     *   `query`: Search query (required).
+    *   `scrapeOptions` : {"formats": ["markdown"] }. If set, it will also scrape the page of each search result.
     *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily`). Defaults to `SEARCH_BACKEND` environment variable if not provided.
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-    *  `google_cse_id`: Google Custom Search Engine ID (optional). Can be set with environment variable.
-    *  `google_cse_key`: Google Custom Search Engine Key (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-
-*  `/search/searxng` (GET): Searxng search endpoint.
-    *   `query`: Search query (required).
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-*  `/search/firecrawl` (GET): Firecrawl search endpoint.
-    *   `query`: Search query (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-* `/search/cse` (GET): Google Custom Search Engine endpoint.
-    *  `query`: Search query (required).
-    *  `google_cse_id`: Google Custom Search Engine ID (optional). Can be set with environment variable.
-    *  `google_cse_key`: Google Custom Search Engine Key (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-*  `/search/brave` (GET): Brave Search API endpoint.
-    *   `query`: Search query (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-* `/search/serpapi` (GET): SerpAPI endpoint.
-    *   `query`: Search query (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
-* `/search/tavily` (GET): Tavily endpoint.
-    *   `query`: Search query (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `limit` : Number of results to return. Default is 5.
-    *   `scrape` : Boolean. If true, scrape each page in the result.
 
 
 ### Scrape Endpoints
 
-*   `/scrape` (GET/POST): Combined scrape endpoint.
-    or `/v1/scrape`
+*   `/v1/scrape?backend=` (POST): Single page scrape endpoint.
     *   `url`: URL to scrape (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
     *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
-*   `/scrape/firecrawl` (GET): Firecrawl scrape endpoint.
+*   `/v1/batch/scrape?backend=` (POST): Multiple page scrape endpoint
     *   `url`: URL to scrape (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-*   `/scrape/crawl4ai` (GET): Crawl4ai scrape endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-*   `/scrape/jina` (GET): Jina Reader endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
-    *   `endpoint`: endpoint (for self-hosted) (optional). Can be set with environment variable.
-*   `/scrape/tavily` (GET): Tavily endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (required). Can be set with environment variable.
-*   `/scrape/scrapingant` (GET): Scraping Ant endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (required). Can be set with environment variable.
-*   `/scrape/scrapingbee` (GET): Scraping Bee endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (required). Can be set with environment variable.
-*   `/scrape/markdowner` (GET): Markdowner endpoint.
-    *   `url`: URL to scrape (required).
-    *   `api_key`: API key (optional). Can be set with environment variable.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily`). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
-## Example Usage
-
-```
-http://127.0.0.1:8000/scrape?url=https://www.wikipedia.org&backend=jina
-```
-```
-http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint=https://search.url4irl.com/
-```
 
 ## Self-hostable tools
 * Jina Reader: https://github.com/intergalacticalvariable/reader
-* Firecrawl: https://github.com/mendableai/firecrawl or https://github.com/devflowinc/firecrawl-simple/
+* Firecrawl: https://github.com/mendableai/firecrawl
 * SearXNG: https://github.com/searxng/searxng
 * Crawl4AI https://github.com/unclecode/crawl4ai
 
@@ -181,9 +112,10 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 | SerpApi      | 100 / month  | $75 / 5000 / month               | https://serpapi.com/                                                      |
 | Firecrawl    | 500 onetime  | $16 / 3000 / month<br>$11 / 1000 | https://www.firecrawl.dev/                                                |
 | Serp.ing     | 1000 / month | $29 / 12000 / month              | https://www.serp.ing/                                                     |
-| Search1API   | no           | $0.99 / 1000 / month             | https://www.search1api.com/                                               |
+| Search1API   | 100 onetime  | $0.99 / 1000 / month             | https://www.search1api.com/                                               |
 | Spider.cloud | $2 onetime   | $0.005 / 1                       | https://spider.cloud/                                                     |
 | Brightdata   | no           | $1.5 / 1000                      | https://brightdata.fr/pricing/serp                                        |
+| Serper       | 2500 onetime | $50 / 50 000                     | https://serper.dev/                                                       |
 
 
 ### Scraping API
@@ -191,15 +123,15 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 | Provider      | Free tier          | Price (for credit)     | Price for JS render | $/1k pages | Link                         |
 |---------------|--------------------|------------------------|---------------------|------------|------------------------------|
 | ScrapeOps     | 1 000 / month      | $9 / 25 000            | 10 credits / page   | 3.6        | https://scrapeops.io/        |
-| Sraping Robot | 5000 / month       | pay as you go          | $0.0018 / page      | 1.8        | https://scrapingrobot.com/   |
+| ScrapingRobot | 5 000 / month      | pay as you go          | $0.0018 / page      | 1.8        | https://scrapingrobot.com/   |
 | Scrappey      | 150 onetime        | pay as you go          | $0.0002 / page      | 2.0        | https://scrappey.com/        |
-| Diifbot       | 10 000 / month     | $299 / 250 000 / month | 1 credits / page    | 1.2        | https://www.diffbot.com      |
-| Search1API    | no                 | $0.99 / 1000 / month   | 1 credits / page    | 1.0        | https://www.search1api.com   |
-| ScrapingBee   | 1000 onetime       | $49 / 150 000 / month  | 5 credits / page    | 1.6        | https://www.scrapingbee.com/ |
+| Diffbot       | 10 000 / month     | $299 / 250 000 / month | 1 credit / page     | 1.2        | https://www.diffbot.com      |
+| Search1API    | no                 | $0.99 / 1000 / month   | 1 credit / page     | 1.0        | https://www.search1api.com   |
+| ScrapingBee   | 1 000 onetime      | $49 / 150 000 / month  | 5 credits / page    | 1.6        | https://www.scrapingbee.com/ |
 | ScrapingAnt   | 10 000 / month     | $19 / 100 000 / month  | 10 credits / page   | 1.9        | https://scrapingant.com/     |
 | Spider.cloud  | $2                 | pay as you go          | $0.00031 / page     | 0.3        | https://spider.cloud/        |
-| Tavily        | 1000 / month       | $0.008 / 1            | 5 pages / credit    | 1.6        | https://tavily.com/          |
-
+| Tavily        | 1 000 / month      | $0.008 / 1             | 5 pages / credit    | 1.6        | https://tavily.com/          |
+| Firecrawl     | 1 000 onetime      | $16 / 3000 / month<br>$11 / 1000 | 1 credit / page     | 5.3        | https://www.firecrawl.dev    |
 
 ## Docker hub image
 
@@ -207,8 +139,12 @@ http://127.0.0.1:8000/search?query=awesome scraping API&backend=searxng&endpoint
 
 ## Roadmap
 
-I'am currently working on the /batch/scrape endpoint and using it for the /search endpoint when the pages needs to be scrapped.
+So far this tool is enough for my needs. I will add functions if people is asking me
 
 Ideas for the future:
-* add new backends: https://www.diffbot.com, https://scrappey.com/, https://www.search1api.com/, https://www.serp.ing/, https://scrapeops.io/, https://scrapingrobot.com/, Bing Search API
-* complete the API implementation (scraping options) 
+* add new backends
+* implement crawl endpoint
+* complete the API implementation to be more compatible with Firecrawl (searching/scraping options) 
+* add rate limiting management
+* improve code: 1 file per backend
+* backend rotation: sequential
