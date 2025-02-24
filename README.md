@@ -76,8 +76,7 @@ You can also pass the API keys and endpoint via query parameters.
 
 ### Search Endpoints
 
-*   `/search?backend=` (POST): Search endpoint.
-    or `/v1/search`
+*   `/v1/search?backend=` (POST): Search endpoint.
     *   `query`: Search query (required).
     *   `scrapeOptions` : {"formats": ["markdown"] }. If set, it will also scrape the page of each search result.
     *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily` or a comma-separated list). Defaults to `SEARCH_BACKEND` environment variable if not provided.
@@ -87,11 +86,11 @@ You can also pass the API keys and endpoint via query parameters.
 
 *   `/v1/scrape?backend=` (POST): Single page scrape endpoint.
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily` or a comma-separated list). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 *   `/v1/batch/scrape?backend=` (POST): Multiple page scrape endpoint
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, 'scrapingant', 'scrapingbee', 'markdowner' or `tavily` or a comma-separated list). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 
 ## Self-hostable tools
