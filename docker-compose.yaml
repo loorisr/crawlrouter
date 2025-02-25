@@ -13,6 +13,7 @@ services:
       - FIRECRAWL_API_KEY=
       - TAVILY_API_KEY=
       - JINA_API_KEY=
+      - PATCHRIGHT_SCRAPE_ENDPOINT=
       - JINA_ENDPOINT=https://r.jina.ai/
       - SEARXNG_ENDPOINT=https://search.url4irl.com/ # or https://searx.perennialte.ch # json format has to be enabled in settings.yml
       - GOOGLE_CSE_KEY=

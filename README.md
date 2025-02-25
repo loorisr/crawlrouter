@@ -40,6 +40,8 @@ The API relies on the following environment variables:
 *   `JINA_API_KEY`: API key for Jina.
 *   `JINA_ENDPOINT`: Endpoint for Jina.
 
+*   `PATCHRIGHT_SCRAPE_ENDPOINT`: Url to [Patchright scrape API](https://github.com/loorisr/patchright-scrape-api) container. Only rawHtml
+
 *   `MARKDOWNER_API_KEY`: API key for Markdowner.
 
 *   `SCRAPINGANT_API_KEY`: API key for Scraping Ant.
@@ -86,11 +88,14 @@ You can also pass the API keys and endpoint via query parameters.
 
 *   `/v1/scrape?backend=` (POST): Single page scrape endpoint.
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `patchright`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
 
 *   `/v1/batch/scrape?backend=` (POST): Multiple page scrape endpoint
     *   `url`: URL to scrape (required).
-    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+    *   `backend`: Scraping backend (optional, can be `jina`, `firecrawl`, `crawl4ai`, `scrapingant`, `scrapingbee`, `patchright`, `markdowner` or `tavily` or a comma-separated list to enable rotation). Defaults to `SCRAPE_BACKEND` environment variable if not provided, otherwise to `jina`.
+
+*   `/scrape` (POST): endpoint to be able to use CrawlRouter instead of playwright-service-ts and to other backend with Firecrawl Extract/Deep Search
+    *   `url`: URL to scrape (required).
 
 
 ## Self-hostable tools

@@ -447,6 +447,26 @@ async def crawl4ai_batch_scrape(urls: list[str]):
     return cleaned_result      
 
 
+
+# patchright-scrape-api scrape
+async def patchright_scrape(url: str):
+    startTime = time.time()
+    endpoint = get_endpoint(None, "PATCHRIGHT_SCRAPE_ENDPOINT")
+    body = {"url": url}
+    print(f"Scraping {url} with Patchright on {endpoint}")
+    result = await make_request(endpoint, params=body, headers=None, method="POST")
+
+    cleaned_result = {}
+    cleaned_result['backend'] = "patchright"
+    cleaned_result['data'] = {}
+    cleaned_result['data']['rawHtml'] = result['content']
+
+    result = cleaned_result
+    endTime = time.time()
+    log_request("scrape", url, result['backend'], endpoint, len(result), endTime-startTime)
+    return result
+
+
 # Google CSE search
 async def google_cse_search(query: str, limit, scrape):
     startTime = time.time()
@@ -629,11 +649,11 @@ async def jina_reader_scrape(url: str):
     startTime = time.time()
     api_key = os.environ.get("JINA_API_KEY") 
     endpoint = get_endpoint(None, "JINA_ENDPOINT", JINA_ENDPOINT_DEFAULT)
+    print(f"Scraping {url} with Jina on {endpoint}")
     headers = {"Accept": "application/json"}
     if api_key:
         headers.update({"Authorization": f"Bearer {api_key}"})
     url = f"{endpoint.rstrip('/')}/{url}"
-    print(f"Scraping {url} with Jina on {endpoint}")
     result = await make_request(url, headers=headers)
     result["backend"] = "Jina"
 
@@ -676,7 +696,7 @@ class FirecrawlScapeModel(BaseModel):
     proxy: Literal["basic", "stealth"] = None
 
 
-
+# Handle Firecrawl compatible endpoint
 @app.post("/v1/scrape")
 async def scrape_post(
     body: FirecrawlScapeModel,
@@ -686,6 +706,25 @@ async def scrape_post(
     
     return await scrape_single(url, backend)
 
+
+class PlaywrightServiceModel(BaseModel):
+    url: HttpUrl = None
+    wait_after_load: Optional[NonNegativeInt] = 0
+    timeout: Optional[NonNegativeInt] = 15000
+    headers: Optional[dict] = None
+
+# Handle playwright-service compatible endpoint
+@app.post("/scrape")
+async def scrape_page_endpoint(body: PlaywrightServiceModel):
+    url = str(body.url)
+
+    scrapped_result = await scrape_single(url, None)
+
+    result = {}
+    result['content'] = scrapped_result['data']['markdown'] # should be rawHtml, needs to update scrape_single to take more parameters
+    result['pageStatusCode'] = scrapped_result['data']['metadata']['statusCode'] 
+    
+    return result
     
 async def scrape_single(url: str, backend):
     if not backend:
@@ -710,8 +749,8 @@ async def scrape_single(url: str, backend):
             last_scrape_backend = 0
             backend = options[last_scrape_backend]
 
-    if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee", "markdowner"]:
-        raise HTTPException(status_code=400, detail=f"Invalid backend '{backend}'. Choose from 'jina', 'firecrawl', 'crawl4ai', 'scrapingant', 'scrapingbee', 'markdowner' or 'tavily.")
+    if backend not in ["jina", "firecrawl", "crawl4ai", "tavily", "scrapingant", "scrapingbee", "markdowner", "patchright"]:
+        raise HTTPException(status_code=400, detail=f"Invalid backend '{backend}'. Choose from 'jina', 'firecrawl', 'patchright', 'crawl4ai', 'scrapingant', 'scrapingbee', 'markdowner' or 'tavily.")
 
     if backend == "jina":
         result = await jina_reader_scrape(url)
@@ -739,6 +778,10 @@ async def scrape_single(url: str, backend):
 
     elif backend == "markdowner":
         result = await markdowner_scrape(url)
+        return result
+
+    elif backend == "patchright":
+        result = await patchright_scrape(url)
         return result
 
                 

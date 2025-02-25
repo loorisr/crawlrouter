@@ -1,18 +1,36 @@
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+
+ENV UV_PYTHON_DOWNLOADS=0
+
+WORKDIR /app
+ADD uv.lock uv.lock 
+ADD pyproject.toml pyproject.toml
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+ADD app /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+# Then, use a final image without uv
 FROM python:3.13-alpine
+
+LABEL maintainer="loorisr"
+LABEL repository="https://github.com/loorisr/crawlrouter"
+LABEL description="Unified API for Searching and Crawling"
+LABEL date="2025-02-25"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
+# Copy the application from the builder
+COPY --from=builder --chown=app:app /app /app
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Set the working directory in the container
 WORKDIR /app
-
-COPY requirements.txt requirements.txt
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
-
-# copy the application
-COPY app .
 
 ARG PORT
 ENV PORT=${PORT:-8000}
