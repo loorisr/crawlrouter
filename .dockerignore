@@ -90,6 +90,5 @@ venv/
 
 run.sh
 logs
+app/logs
 *.csv
-logs/requests.csv
-requests.csv
