@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrawlRouter UI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .container {
+            display: flex;
+            width: 90%;
+            margin: auto;
+            gap: 1rem;
+        }
+
+        .box {
+            background-color: #fff;
+            width: 50%;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px; /* Adjusted height */
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif; /* Consistent font */
+        }
+        input[type="text"],
+        input[type="url"],
+        input[type="number"],
+        select, input[type="checkbox"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: auto;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            display: block;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #markdownOutput {
+            white-space: pre-wrap;
+            /* Other styles as needed */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .box {
+                width: 100%;
+            }
+        }
+
+        /* Compact form styles */
+        .compact-form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .compact-form .full-width {
+            grid-column: span 2;
+        }
+
+        .compact-form label {
+            margin-bottom: 0.25rem;
+        }
+
+        .compact-form input,
+        .compact-form select,
+        .compact-form textarea {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>CrawlRouter UI - /v1/extract</h1>
+
+    <form id="extractForm" class="compact-form">
+        <div class="full-width">
+            <label for="urls">URLs (one per line):</label>
+            <textarea id="urls" name="urls" required></textarea>
+        </div>
+
+        <div class="full-width">
+            <label for="prompt">Prompt:</label>
+            <textarea id="prompt" name="prompt"></textarea>
+        </div>
+
+        <div class="full-width">
+            <label for="schema">Schema:</label>
+            <textarea id="schema" name="schema"></textarea>
+        </div>
+
+        <div>
+            <label for="ignore_sitemap">Ignore Sitemap:</label>
+            <input type="checkbox" id="ignore_sitemap" name="ignore_sitemap">
+        </div>
+
+        <div>
+            <label for="include_subdomains">Include Subdomains:</label>
+            <input type="checkbox" id="include_subdomains" name="include_subdomains" checked>
+        </div>
+
+        <div>
+            <label for="enable_web_search">Enable Web Search:</label>
+            <input type="checkbox" id="enable_web_search" name="enable_web_search">
+        </div>
+
+        <div>
+            <label for="scrape_options">Scrape Options:</label>
+            <textarea id="scrape_options" name="scrape_options"></textarea>
+        </div>
+        <div>
+            <label for="show_sources">Show Sources:</label>
+            <input type="checkbox" id="show_sources" name="show_sources">
+        </div>
+
+        <div class="full-width">
+            <button type="button" onclick="submitForm()">Extract</button>
+        </div>
+    </form>
+
+    <div class="container">
+        <div class="box">
+            <h2>Raw JSON Response</h2>
+            <pre id="jsonOutput" style="white-space: pre-wrap;"></pre>
+        </div>
+        <div class="box">
+            <h2>Extracted Data</h2>
+            <div id="markdownOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        async function submitForm() {
+            const form = document.getElementById('extractForm');
+            const formData = new FormData(form);
+
+            const body = {
+                urls: formData.get('urls').split('\\n').filter(url => url.trim() !== ''),
+                prompt: formData.get('prompt') || undefined,
+                schema: formData.get('schema') ? JSON.parse(formData.get('schema')) : undefined,
+                ignoreSitemap: formData.get('ignore_sitemap') === 'on',
+                includeSubdomains: formData.get('include_subdomains') === 'on',
+                enableWebSearch: formData.get('enable_web_search') === 'on',
+                scrapeOptions: formData.get('scrape_options') ? JSON.parse(formData.get('scrape_options')) : undefined,
+                showSources: formData.get('show_sources') === 'on'
+            };
+
+            let fetch_url = '/v1/extract';
+
+            const response = await fetch(fetch_url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            const button = document.querySelector("button");
+
+            const data = await response.json();
+
+            if (data && data.success && data.id) {
+                let pollCount = 0;
+                const maxPolls = 100;
+                const pollInterval = 10000; // 10 seconds
+
+                async function pollForResult(id) {
+                    
+                    button.textContent = `Polling... ${pollCount}/${maxPolls}`;
+                    const pollResponse = await fetch(`/v1/extract/${id}`);
+                    const pollData = await pollResponse.json();
+
+                    document.getElementById('jsonOutput').textContent = JSON.stringify(pollData, null, 2);
+
+                    pollCount++;
+
+                    // Poll while status is 'processing'
+                    if (pollCount < maxPolls && pollData.status === 'processing') {
+                        setTimeout(() => pollForResult(id), pollInterval);
+                    } else {
+                        if (pollData && pollData.data) {
+                            //document.getElementById('markdownOutput').innerHTML = JSON.stringify();
+                            document.getElementById('markdownOutput').innerHTML = JSON.stringify(pollData.data, null, 2).replace(/\\n/g, '\n');
+                        } else {
+                            document.getElementById('markdownOutput').textContent = 'No result found.';
+                        }
+                        button.textContent = "Extract";
+                    }
+                }
+
+                pollForResult(data.id);
+
+            } else {
+                document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+                if (data && data.data && data.data.markdown) {
+                    document.getElementById('markdownOutput').innerHTML = marked.parse(data.data.markdown);
+                } else {
+                    document.getElementById('markdownOutput').textContent = 'No markdown data found.';
+                }
+            }
+
+        }
+    </script>
+</body>
+</html>

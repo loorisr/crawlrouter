@@ -76,20 +76,24 @@ def log_request(type, url_or_query, backend, endpoint, size, execution_time):
             print (f"Error during logging: {e}")
 
 @app.get("/")
-async def redirect_docs():
-    return RedirectResponse(url="/docs")
+async def read_home_ui(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     raise HTTPException(status_code=404, detail=f"Not found")
 
 @app.get("/ui/scrape", response_class=HTMLResponse)
-async def read_ui(request: Request):
+async def read_scrape_ui(request: Request):
     return templates.TemplateResponse("scrape-ui.html", {"request": request})
 
 @app.get("/ui/deep-research", response_class=HTMLResponse)
-async def read_ui(request: Request):
+async def read_deep_research_ui(request: Request):
     return templates.TemplateResponse("deep-research-ui.html", {"request": request})
+
+@app.get("/ui/extract", response_class=HTMLResponse)
+async def read_extract_ui(request: Request):
+    return templates.TemplateResponse("extract-ui.html", {"request": request})
 
 # Function to get API key from query or environment variables
 def get_api_key(query_key: Optional[str], env_key: str) -> str:
@@ -814,7 +818,8 @@ async def deep_research_endpoint(body: DeepResearchRequest):
 
     print(f"Deep searching {body.topic} with Firecrawl on {endpoint}")
 
-    headers = {"Content-Type": "application/json", "Authorization": "nokey"}
+    api_key = get_api_key(None, "FIRECRAWL_API_KEY")
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     params = body.json(by_alias=True)
 
@@ -822,6 +827,7 @@ async def deep_research_endpoint(body: DeepResearchRequest):
         try:
             response = await client.post(endpoint, headers=headers, data=params, timeout=HTTP_TIMEOUT)
             response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            endTime = time.time()
             log_request("deep-research", body.topic, "firecrawl", endpoint, 0, endTime-startTime)
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -840,7 +846,8 @@ async def deep_research_status_endpoint(id):
 
     print(f"Deep searching {id} status with Firecrawl on {endpoint}")
 
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+    api_key = get_api_key(None, "FIRECRAWL_API_KEY")
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     endpoint = endpoint + f"/{id}"
 
@@ -859,28 +866,25 @@ async def deep_research_status_endpoint(id):
 
 ######## Extract endpoint
 class ExtractRequest(BaseModel):
-    url: HttpUrl = Field(..., description="The URL of the webpage to extract data from.")
-    extractor: Optional[str] = Field(None, description="The name of the extractor to use. If not provided, the default extractor will be used.")
-    format: Optional[str] = Field(None, description="The format in which to return the extracted data. Options include 'json', 'html', 'text'. Default is 'json'.")
-    metadata: Optional[bool] = Field(False, description="Whether to include metadata in the response. Default is False.")
-    timeout: Optional[int] = Field(30, description="The maximum time (in seconds) to wait for the extraction to complete. Default is 30 seconds.")
-    headers: Optional[dict] = Field(None, description="Custom headers to include in the request to the target URL.")
-    cookies: Optional[dict] = Field(None, description="Custom cookies to include in the request to the target URL.")
-    proxy: Optional[dict] = Field(None, description="Proxy configuration to use for the request.")
-    javascript: Optional[bool] = Field(False, description="Whether to execute JavaScript on the page. Default is False.")
-    wait_for: Optional[str] = Field(None, description="A CSS selector to wait for before extracting the content.")
-    wait_timeout: Optional[int] = Field(10, description="The maximum time (in seconds) to wait for the specified element to appear. Default is 10 seconds.")
-
+    urls: List[HttpUrl] = Field(...,description="A list of URLs to process. Maximum of 10 URLs allowed per request while in beta.",)
+    prompt: Optional[str] = Field(None, description="An optional prompt to guide the processing of the URLs. Maximum length of 10,000 characters.",)
+    schema: Optional[dict] = Field(None, description="An optional JSON schema to validate the structure of the data extracted from the URLs.",)
+    ignoreSitemap: Optional[bool] = Field(False, description="If set to True, the sitemap of the URLs will be ignored during processing.",)
+    includeSubdomains: Optional[bool] = Field(True, description="If set to True, subdomains of the provided URLs will be included in the processing.",)
+    enableWebSearch: Optional[bool] = Field(False, description="If set to True, web search functionality will be enabled for the URLs.",)
+    scrapeOptions: Optional[dict] = Field({"onlyMainContent": True}, description="Optional configuration for customizing the scraping behavior, such as focusing only on the main content.",)
+    showSources: Optional[bool] = Field(False, description="If set to True, the sources of the extracted data will be included in the response.",)
 
 # extract endpoint
 @app.post("/v1/extract")
-async def extract_endpoint(body: DeepResearchRequest):
+async def extract_endpoint(body: ExtractRequest):
     startTime = time.time()
     endpoint = get_endpoint(None, "FIRECRAWL_EXTRACT_ENDPOINT", FIRECRAWL_EXTRACT_ENDPOINT_DEFAULT)
 
-    print(f"Extract {body.topic} with Firecrawl on {endpoint}")
+    print(f"Extract {body.prompt} with Firecrawl on {endpoint}")
 
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+    api_key = get_api_key(None, "FIRECRAWL_API_KEY")
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     params = body.json(by_alias=True)
 
@@ -888,7 +892,8 @@ async def extract_endpoint(body: DeepResearchRequest):
         try:
             response = await client.post(endpoint, headers=headers, data=params, timeout=HTTP_TIMEOUT)
             response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-            log_request("extract", body.topic, "firecrawl", endpoint, 0, endTime-startTime)
+            endTime = time.time()
+            log_request("extract", body.prompt, "firecrawl", endpoint, 0, endTime-startTime)
             return response.json()
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail=str(e))
@@ -905,7 +910,8 @@ async def extract_status_endpoint(id):
 
     print(f"Extract {id} status with Firecrawl on {endpoint}")
 
-    headers = {"Content-Type": "application/json", "Authorization": "nokey"}
+    api_key = get_api_key(None, "FIRECRAWL_API_KEY")
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     endpoint = endpoint + f"/{id}"
 
