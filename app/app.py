@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException, Request
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, NonNegativeInt, PositiveInt, HttpUrl, root_validator
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, HttpUrl, root_validator, Field
 from typing import Union, List, Optional, Literal
 from markdownify import markdownify as md
 import os
@@ -15,6 +16,8 @@ from datetime import datetime
 FIRECRAWL_SEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/search"
 FIRECRAWL_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/scrape"
 FIRECRAWL_BATCH_SCRAPE_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/batch/scrape"
+FIRECRAWL_DEEP_RESEARCH_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/deep-research"
+FIRECRAWL_EXTRACT_ENDPOINT_DEFAULT = "https://api.firecrawl.dev/v1/extract"
 JINA_ENDPOINT_DEFAULT = "https://r.jina.ai/"
 
 CRAWL4AI_TIMEOUT = (int)(os.getenv("CRAWL4AI_TIMEOUT", 30))
@@ -25,6 +28,8 @@ SCRAPE_BACKEND = os.getenv("SCRAPE_BACKEND")
 
 SEARCH_BACKEND_ROTATE = os.getenv("SEARCH_BACKEND_ROTATE")
 SCRAPE_BACKEND_ROTATE = os.getenv("SCRAPE_BACKEND_ROTATE")
+
+FIRECRAWL_DEEP_RESEARCH_ENDPOINT = os.getenv("FIRECRAWL_DEEP_RESEARCH_ENDPOINT")
 
 SEARCH_RESULT_NUMBER_DEFAULT = 5
 
@@ -53,6 +58,7 @@ app = FastAPI(    title="CrawlRouter",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
     },)
 
+templates = Jinja2Templates(directory="templates")
 
 def log_request(type, url_or_query, backend, endpoint, size, execution_time):
     if LOG_FILE:
@@ -76,6 +82,14 @@ async def redirect_docs():
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     raise HTTPException(status_code=404, detail=f"Not found")
+
+@app.get("/ui/scrape", response_class=HTMLResponse)
+async def read_ui(request: Request):
+    return templates.TemplateResponse("scrape-ui.html", {"request": request})
+
+@app.get("/ui/deep-research", response_class=HTMLResponse)
+async def read_ui(request: Request):
+    return templates.TemplateResponse("deep-research-ui.html", {"request": request})
 
 # Function to get API key from query or environment variables
 def get_api_key(query_key: Optional[str], env_key: str) -> str:
@@ -785,6 +799,128 @@ async def scrape_single(url: str, backend):
         return result
 
                 
+######## Deep-research endpoints
+class DeepResearchRequest(BaseModel):
+    topic: str = Field(..., description="The topic or question to research")
+    maxDepth: int = Field(default=7, ge=1, le=10, description="Maximum depth of research iterations")
+    timeLimit: int = Field(default=300, ge=30, le=600, description="Time limit in seconds")
+
+
+# deep-research endpoint
+@app.post("/v1/deep-research")
+async def deep_research_endpoint(body: DeepResearchRequest):
+    startTime = time.time()
+    endpoint = get_endpoint(None, "FIRECRAWL_DEEP_RESEARCH_ENDPOINT", FIRECRAWL_DEEP_RESEARCH_ENDPOINT_DEFAULT)
+
+    print(f"Deep searching {body.topic} with Firecrawl on {endpoint}")
+
+    headers = {"Content-Type": "application/json", "Authorization": "nokey"}
+
+    params = body.json(by_alias=True)
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(endpoint, headers=headers, data=params, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            log_request("deep-research", body.topic, "firecrawl", endpoint, 0, endTime-startTime)
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+
+
+@app.get("/v1/deep-research/{id}")
+async def deep_research_status_endpoint(id):
+    endpoint = get_endpoint(None, "FIRECRAWL_DEEP_RESEARCH_ENDPOINT", FIRECRAWL_DEEP_RESEARCH_ENDPOINT_DEFAULT)
+
+    print(f"Deep searching {id} status with Firecrawl on {endpoint}")
+
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+
+    endpoint = endpoint + f"/{id}"
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(endpoint, headers=headers, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+######## Extract endpoint
+class ExtractRequest(BaseModel):
+    url: HttpUrl = Field(..., description="The URL of the webpage to extract data from.")
+    extractor: Optional[str] = Field(None, description="The name of the extractor to use. If not provided, the default extractor will be used.")
+    format: Optional[str] = Field(None, description="The format in which to return the extracted data. Options include 'json', 'html', 'text'. Default is 'json'.")
+    metadata: Optional[bool] = Field(False, description="Whether to include metadata in the response. Default is False.")
+    timeout: Optional[int] = Field(30, description="The maximum time (in seconds) to wait for the extraction to complete. Default is 30 seconds.")
+    headers: Optional[dict] = Field(None, description="Custom headers to include in the request to the target URL.")
+    cookies: Optional[dict] = Field(None, description="Custom cookies to include in the request to the target URL.")
+    proxy: Optional[dict] = Field(None, description="Proxy configuration to use for the request.")
+    javascript: Optional[bool] = Field(False, description="Whether to execute JavaScript on the page. Default is False.")
+    wait_for: Optional[str] = Field(None, description="A CSS selector to wait for before extracting the content.")
+    wait_timeout: Optional[int] = Field(10, description="The maximum time (in seconds) to wait for the specified element to appear. Default is 10 seconds.")
+
+
+# extract endpoint
+@app.post("/v1/extract")
+async def extract_endpoint(body: DeepResearchRequest):
+    startTime = time.time()
+    endpoint = get_endpoint(None, "FIRECRAWL_EXTRACT_ENDPOINT", FIRECRAWL_EXTRACT_ENDPOINT_DEFAULT)
+
+    print(f"Extract {body.topic} with Firecrawl on {endpoint}")
+
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+
+    params = body.json(by_alias=True)
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(endpoint, headers=headers, data=params, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            log_request("extract", body.topic, "firecrawl", endpoint, 0, endTime-startTime)
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+
+@app.get("/v1/extract/{id}")
+async def extract_status_endpoint(id):
+    endpoint = get_endpoint(None, "FIRECRAWL_EXTRACT_ENDPOINT", FIRECRAWL_EXTRACT_ENDPOINT_DEFAULT)
+
+    print(f"Extract {id} status with Firecrawl on {endpoint}")
+
+    headers = {"Content-Type": "application/json", "Authorization": "nokey"}
+
+    endpoint = endpoint + f"/{id}"
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(endpoint, headers=headers, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
 
 ######## Search endpoint
 
