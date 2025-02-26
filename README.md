@@ -6,6 +6,16 @@ I've developed this tool because the different searching and scraping API availa
 
 It also allows to rotate between providers to stay within the rate limits.
 
+## Features
+
+* lightweight: image is 64 mo
+* several SERP and scraping backend
+* backend rotation: randomly or sequentially
+* *very* basic web UI
+
+![image](https://github.com/user-attachments/assets/5627ba73-ca01-4380-8647-e2d97a95f896)
+
+
 ## Prerequisites
 
 Install the dependencies:
