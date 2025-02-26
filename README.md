@@ -11,7 +11,7 @@ It also allows to rotate between providers to stay within the rate limits.
 Install the dependencies:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 cd app
 fastapi run app.py --reload or uvicorn app:app --reload --host 0.0.0.0
 ```
@@ -32,6 +32,8 @@ The API relies on the following environment variables:
 *   `FIRECRAWL_SEARCH_ENDPOINT`: Endpoint for Firecrawl Search API.
 *   `FIRECRAWL_SCRAPE_ENDPOINT`: Endpoint for Firecrawl Scraping API.
 *   `FIRECRAWL_BATCH_SCRAPE_ENDPOINT`: Endpoint for Firecrawl Batch Scrape API.
+*   `FIRECRAWL_EXTRACT_ENDPOINT`: Endpoint for Firecrawl Extract API.
+*   `FIRECRAWL_DEEP_RESEARCH_ENDPOINT`: Endpoint for Firecrawl Deep researching API.
 
 *   `CRAWL4AI_API_KEY`: API key for Crawl4ai.
 *   `CRAWL4AI_ENDPOINT`: Endpoint for Crawl4ai.
@@ -73,16 +75,16 @@ You can also pass the API keys and endpoint via query parameters.
 
 ### Documentation Endpoints
 
-*   `/` or `/docs` (GET): API documentation in Swagger UI
+*   `/` (GET): Draft of an UI
+*   `/docs` (GET): API documentation in Swagger UI
 *   `/redoc` (GET): API documentation in ReDoc
 
-### Search Endpoints
+### Search Endpoint
 
 *   `/v1/search?backend=` (POST): Search endpoint.
     *   `query`: Search query (required).
     *   `scrapeOptions` : {"formats": ["markdown"] }. If set, it will also scrape the page of each search result.
     *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily` or a comma-separated list). Defaults to `SEARCH_BACKEND` environment variable if not provided.
-
 
 ### Scrape Endpoints
 
@@ -96,6 +98,16 @@ You can also pass the API keys and endpoint via query parameters.
 
 *   `/scrape` (POST): endpoint to be able to use CrawlRouter instead of playwright-service-ts and to other backend with Firecrawl Extract/Deep Search
     *   `url`: URL to scrape (required).
+
+
+### Extract and deep searching endpoints
+
+These endpoints are Firecrawl-only. They just act as a bridge.
+
+*   `/v1/extract` (POST): Extract endpoint.
+*   `/v1/extract/{id}` (GET): Extract status endpoint.
+*   `/v1/deep-research` (POST): Deep-research endpoint.
+*   `/v1/deep-research/{id}` (GET): Deep-research status endpoint.
 
 
 ## Self-hostable tools
@@ -136,6 +148,7 @@ You can also pass the API keys and endpoint via query parameters.
 | Spider.cloud  | $2                 | pay as you go          | $0.00031 / page     | 0.3        | https://spider.cloud/        |
 | Tavily        | 1 000 / month      | $0.008 / 1             | 5 pages / credit    | 1.6        | https://tavily.com/          |
 | Firecrawl     | 1 000 onetime      | $16 / 3000 / month<br>$11 / 1000 | 1 credit / page     | 5.3        | https://www.firecrawl.dev    |
+| Scraping Fish | no                 | pay as you go          | $0.0002 / page      | 2.0        | https://scrapingfish.com/    |
 
 ## Docker hub image
 
@@ -151,3 +164,4 @@ Ideas for the future:
 * complete the API implementation to be more compatible with Firecrawl (searching/scraping options) 
 * add rate limiting management
 * improve code: 1 file per backend
+* better UI with [NiceGUI](https://nicegui.io/) or [FastUI](https://github.com/pydantic/FastUI)
