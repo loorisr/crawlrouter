@@ -110,21 +110,22 @@ You can also pass the API keys and endpoint via query parameters.
     *   `url`: URL to scrape (required).
 
 
-### Extract and deep searching endpoints
+### Extract and deep research endpoints
 
 These endpoints are Firecrawl-only. They just act as a bridge.
 
-*   `/v1/extract` (POST): Extract endpoint.
-*   `/v1/extract/{id}` (GET): Extract status endpoint.
-*   `/v1/deep-research` (POST): Deep-research endpoint.
-*   `/v1/deep-research/{id}` (GET): Deep-research status endpoint.
+*   `/v1/extract` (POST): Extract endpoint
+*   `/v1/extract/{id}` (GET): Extract status endpoint
+*   `/v1/deep-research` (POST): Deep-research endpoint
+*   `/v1/deep-research/{id}` (GET): Deep-research status endpoint
 
 
 ## Self-hostable tools
 * Jina Reader: https://github.com/intergalacticalvariable/reader
 * Firecrawl: https://github.com/mendableai/firecrawl
 * SearXNG: https://github.com/searxng/searxng
-* Crawl4AI https://github.com/unclecode/crawl4ai
+* Crawl4AI: https://github.com/unclecode/crawl4ai
+* Patchright Scrape API: https://github.com/loorisr/patchright-scrape-api
 
 ## Comparaison of API providers
 ### SERP API
@@ -158,7 +159,8 @@ These endpoints are Firecrawl-only. They just act as a bridge.
 | Spider.cloud  | $2                 | pay as you go          | $0.00031 / page     | 0.3        | https://spider.cloud/        |
 | Tavily        | 1 000 / month      | $0.008 / 1             | 5 pages / credit    | 1.6        | https://tavily.com/          |
 | Firecrawl     | 1 000 onetime      | $16 / 3000 / month<br>$11 / 1000 | 1 credit / page     | 5.3        | https://www.firecrawl.dev    |
-| Scraping Fish | no                 | pay as you go          | $0.0002 / page      | 2.0        | https://scrapingfish.com/    |
+| Scraping Fish | no                 | pay as you go          | $0.002 / page       | 2.0        | https://scrapingfish.com/    |
+| Scrapeless    | no                 | pay as you go          | $0.0002 / page      | 0.2        | https://www.scrapeless.com   |
 
 ## Docker hub image
 
