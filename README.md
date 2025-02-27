@@ -128,7 +128,7 @@ These endpoints are Firecrawl-only. They just act as a bridge.
 * Patchright Scrape API: https://github.com/loorisr/patchright-scrape-api
 
 ## Comparaison of API providers
-### SERP API
+### SERP API comparaison
 
 | Provider     | Free tier    | Price                            | Link                                                                      |
 |--------------|--------------|----------------------------------|---------------------------------------------------------------------------|
@@ -145,7 +145,7 @@ These endpoints are Firecrawl-only. They just act as a bridge.
 | Serper       | 2500 onetime | $50 / 50 000                     | https://serper.dev/                                                       |
 
 
-### Scraping API
+### Scraping API comparaison
 
 | Provider      | Free tier          | Price (for credit)     | Price for JS render | $/1k pages | Link                         |
 |---------------|--------------------|------------------------|---------------------|------------|------------------------------|
@@ -161,6 +161,16 @@ These endpoints are Firecrawl-only. They just act as a bridge.
 | Firecrawl     | 1 000 onetime      | $16 / 3000 / month<br>$11 / 1000 | 1 credit / page     | 5.3        | https://www.firecrawl.dev    |
 | Scraping Fish | no                 | pay as you go          | $0.002 / page       | 2.0        | https://scrapingfish.com/    |
 | Scrapeless    | no                 | pay as you go          | $0.0002 / page      | 0.2        | https://www.scrapeless.com   |
+| Scraping Dog  | 1 000 one time     | $40 / 200 000 / month  | 5 credits / page    | 1.0        | https://www.scrapingdog.com |
+| AbstractAPI   | 1 000 one time     | $12 / 5 000 / month    |                     | 2.4        | https://www.abstractapi.com |
+| ScraperAPI    | 5 000 one time     | $49 / 100 000 / month  | 10 credits / page   | 4.9        | https://www.scraperapi.com/ |
+| Oxylabs       | 1 week             | $49 / 36 296 / month   |                     | 1.4        | https://oxylabs.io          |
+| Smartproxy    | 5 000 one time     | $50 / 25 000 / month   |                     | 2.0        | https://smartproxy.com      |
+| Brightdata    | $5                 | pay as you go          |                     | 1.5        | https://brightdata.com      |
+| Zyte          |                    | pay as you go          |                     | 1.0        | https://www.zyte.com        |
+| Zenrows       | 1 000 one time     | $69 / 250 000 / month  | 5 credits / page    | 1.4        | https://www.zenrows.com/    |
+
+*price is for the cheapest monthly plan available*
 
 ## Docker hub image
 
