@@ -21,12 +21,13 @@ This is a simple benchmark of several scraping tools. Tests have been made on 20
 | Firecrawl          | 17   | 85%  | 6.1          |
 
 *nojs means that Javascript rendering is disabled*
+
 *js means that Javascript rendering is enabled*
 
 ## Self-hosted
 
 | Provider                          | # OK | %    | average time | Comments      |
-|-----------------------------------|:----:|:----:|:------------:||:------------:|
+|-----------------------------------|:----:|:----:|:------------:|:------------:|
 | Firecrawl                         | 18   | 90%  | 15.7 | Firecrawl with default [Playwright service](https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts) |
 | Patchright                        | 19   | 95%  | 16.8 | [Patchright service](https://github.com/loorisr/patchright-scrape-api) |
 | Playwright                        | 18   | 90%  | 14.9 | [Playwright service](https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts) |
