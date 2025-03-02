@@ -172,6 +172,8 @@ These endpoints are Firecrawl-only. They just act as a bridge.
 
 *price is for the cheapest monthly plan available*
 
+You can see the page [benchmark](/BENCHMARK.md) for performance comparaison.
+
 ## Docker hub image
 
 `docker pull loorisr/crawlrouter:latest`
