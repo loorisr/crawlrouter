@@ -173,4 +173,3 @@ cython_debug/
 
 # logs
 *.csv
-run.sh

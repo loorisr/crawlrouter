@@ -1,0 +1,160 @@
+jina:
+  request:
+    method: "GET"
+    url: "https://r.jina.ai/{{ url }}"
+    headers:
+      Accept: "application/json"
+      Authorization: "{% if JINA_API_KEY is defined and JINA_API_KEY %}'Bearer {{ JINA_API_KEY }}'{% else %}''{% endif %}"
+    timeout: "{{ timeout }}"
+  response:
+    success: "true"
+    backend: "jina"
+    data: 
+      markdown: "{{ data.content }}"
+      metadata:
+        title: "{{ data.title }}"
+        url: "{{ data.url }}"
+
+firecrawl:
+  request:
+    method: "POST"
+    url: "{{ FIRECRAWL_SCRAPE_ENDPOINT }}"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ FIRECRAWL_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      url: "{{ url }}"
+      formats: "{{ formats }}"
+      onlyMainContent: "{{ onlyMainContent }}"
+      includeTags: "{{ includeTags }}"
+      excludeTags: "{{ excludeTags }}"
+      headers: "{{ headers }}"
+      waitFor: "{{ waitFor }}"
+      mobile: "{{ mobile }}"
+      skipTlsVerification: "{{ skipTlsVerification }}"
+      timeout: "{{ timeout }}"
+      jsonOptions: "{{ jsonOptions }}"
+      actions: "{{ actions }}"
+      location: "{{ location }}"
+      removeBase64Images: "{{ removeBase64Images }}"
+      blockAds: "{{ blockAds }}"
+      proxy: "{{ proxy }}"
+  response:
+    success: "{{ success }}"
+    backend: "firecrawl"
+    data: "{{ data }}"
+
+markdowner:
+  request:
+    method: "GET"
+    url: "https://md.dhr.wtf"
+    parameters:
+      url: "{{ url }}"
+    headers:
+      Content-Type: "application/json"
+      Authorization: "{% if MARKDOWNER_API_KEY is defined and MARKDOWNER_API_KEY %}'Bearer {{ MARKDOWNER_API_KEY }}'{% else %}''{% endif %}"
+    timeout: "{{ timeout }}"
+  response:
+    success: "true"
+    backend: "markdowner"
+    data: 
+      markdown: "{{ text }}"
+
+
+tavily:
+  request:
+    method: "POST"
+    url: "https://api.tavily.com/extract"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ TAVILY_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      urls: "{{ url }}"
+      include_images: "false"
+      extract_depth: "basic" # or advanced
+  response:
+    success: "true"
+    backend: "tavily"
+    data: 
+      markdown: "{{ results.0.raw_content }}"
+      metadata:
+        url: "{{ results.0.url }}"
+
+
+
+scrapingant:
+  request:
+    method: "GET"
+    #url: "https://api.scrapingant.com/v2/markdown"
+    url: "https://api.scrapingant.com/v2/extended"
+    parameters:
+      url: "{{ url }}"
+      x-api-key: "{{ SCRAPINGANT_API_KEY }}"
+      return_page_source: "false"  # not SCRAPINGANT_JS_RENDERING
+      #return_page_source: "{% if SCRAPINGANT_JS_RENDERING is defined and SCRAPINGANT_JS_RENDERING %}'false'{% else %}'true'{% endif %}"
+    headers:
+      Content-Type: "application/json"
+    timeout: "{{ timeout }}"
+  response:
+    success: "true"
+    backend: "scrapingant"
+    data: 
+      html: "{{ html }}"
+      markdown: "{{ text }}"
+
+
+scrapingbee:
+  request:
+    method: "GET"
+    url: "https://app.scrapingbee.com/api/v1"
+    parameters:
+      url: "{{ url }}"
+      api_key: "{{ SCRAPINGBEE_API_KEY }}"
+      render_js: "{% if SCRAPINGBEE_JS_RENDERING is defined and SCRAPINGBEE_JS_RENDERING %}'false'{% else %}'true'{% endif %}"
+      json_response: "true"
+    headers:
+      Content-Type: "application/json"
+    timeout: "{{ timeout }}"
+  response:
+    success: "true"
+    backend: "scrapingbee"
+    data: 
+      rawHtml: "{{ body }}"
+
+
+patchright:
+  request:
+    method: "POST"
+    url: "{{ PATCHRIGHT_SCRAPE_ENDPOINT }}"
+    data:
+      url: "{{ url }}"
+      headers: "{{ headers }}"
+      wait_after_load: "{{ waitFor }}"
+    headers:
+      Content-Type: "application/json"
+    timeout: "{{ timeout }}"
+  response:
+    success: "true"
+    backend: "patchright"
+    data: 
+      rawHtml: "{{ content}}"
+
+
+crawl4ai:
+  request:
+    method: "POST"
+    url: "{{ CRAWL4AI_ENDPOINT }}"
+    data:
+      urls: "{{ url }}"
+    headers:
+      Authorization: "Bearer {{ CRAWL4AI_API_KEY }}"
+      Content-Type: "application/json"
+    timeout: "{{ timeout }}"
+  response:
+    success: "{{ result.success }}"
+    backend: "crawl4ai"
+    data: 
+      rawHtml: "{{ result.html }}"
+      markdown: "{{ result.markdown }}"

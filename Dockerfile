@@ -18,7 +18,7 @@ FROM python:3.13-alpine
 LABEL maintainer="loorisr"
 LABEL repository="https://github.com/loorisr/crawlrouter"
 LABEL description="Unified API for Searching and Crawling"
-LABEL date="2025-02-25"
+LABEL date="2025-03-10"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

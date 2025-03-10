@@ -1,0 +1,247 @@
+google:
+  request:
+    method: "GET"
+    url: "https://customsearch.googleapis.com/customsearch/v1"
+    timeout: "{{ timeout }}"
+    parameters:
+      q: "{{ query }}"
+      num: "{{ limit }}"
+      lr: "lang_{{ lang }}"
+      gl: "{{ country }}"
+      cx: "{{ GOOGLE_CSE_ID }}"
+      key: "{{ GOOGLE_CSE_KEY }}"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      response_time: "{{ searchInformation.searchTime }}"
+      query: "{{ queries.request.0.searchTerms }}"
+      totalResults: "{{ searchInformation.totalResults }}"
+      backend: "google"
+    # data: |
+    #   [
+    #     {% for item in items %}
+    #     {
+    #       "title": "{{ item.title }}",
+    #       "description": "{{ item.snippet | replace('\n', ' ') }}",
+    #       "url": "{{ item.link }}"
+    #     }{% if not loop.last %},{% endif %}
+    #     {% endfor %}
+    #   ]
+    data: 
+      _type: array
+      _path: items
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.snippet }}"
+        url: "{{ item.link }}"
+
+searxng:
+  request:
+    method: "GET"
+    url: "{{ SEARXNG_ENDPOINT.rstrip('/') }}/search"
+    timeout: "{{ timeout }}"
+    headers:
+      Accept: "text/html"
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0"
+      Accept-Encoding: "gzip,deflate"
+      Accept-Language: "en,fr"
+    parameters:
+      q: "{{ query }}"
+      language: "{{ lang }}"
+      format: "json"
+      engines: "{{ SEARXNG_ENGINES }}"
+      categories: "{{ SEARXNG_CATEGORIES }}"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      query: "{{ query }}"
+      totalResults: "{{ number_of_results }}"
+      backend: "searxng"
+      processingTime: "{{ processingTime }}"
+    data:
+      _type: array
+      _path: results
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.content }}"
+        url: "{{ item.url }}"
+
+tavily:
+  request:
+    method: "POST"
+    url: "https://api.tavily.com/search"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ TAVILY_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      query: "{{ query }}"
+      search_depth: "basic" # or advanced
+      max_results: "{{ limit }}"
+      include_raw_content: "{% if 'html' in scrapeOptions.formats %}true{% else %}false{% endif %}"
+  config:
+    scrape: "true" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      query: "{{ query }}"
+      backend: "tavily"
+      response_time: "{{ response_time }}"
+    data:
+      _type: array
+      _path: results
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.content }}"
+        url: "{{ item.url }}"
+        html: "{{ item.raw_content }}"
+
+
+serpapi:
+  request:
+    method: "GET"
+    url: "https://serpapi.com/search"
+    timeout: "{{ timeout }}"
+    parameters:
+      q: "{{ query }}"
+      api_key: "{{ SERPAPI_KEY }}"
+      num: "{{ limit }}"
+      gl: "{{ country }}"
+     # hl: "{{ lang }}"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      query: "{{ search_parameters.q }}"
+      engine: "{{ search_parameters.engine }}"
+      totalResults: "{{ search_information.total_results }}"
+      backend: "serpapi"
+      response_time: "{{ search_metadata.total_time_taken }}"
+    data:
+      _type: array
+      _path: organic_results
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.snippet }}"
+        url: "{{ item.link }}"
+
+firecrawl:
+  request:
+    method: "POST"
+    url: "{{ FIRECRAWL_SEARCH_ENDPOINT }}"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ FIRECRAWL_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      query: "{{ query }}"
+      limit: "{{ limit }}"
+      tbs: "{{ tbs }}"
+      lang: "{{ lang }}"
+      country: "{{ country }}"
+      location: "{{ location }}"
+      timeout: "{{ timeout }}"
+      scrapeOptions: "{{ scrapeOptions }}"
+  config:
+    scrape: "true" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      backend: "firecrawl"
+    data: "{{ data }}"
+
+
+serping:
+  request:
+    method: "GET"
+    url: "https://us-east-1.serp.ing/api/v1/google/serp"
+    timeout: "{{ timeout }}"
+    headers:
+      X-API-KEY: "{{ SERPING_API_KEY }}"
+      Content-Type: "application/json"
+    parameters:
+      q: "{{ query }}"
+      num: "{{ limit }}"
+      hl: "{{ lang }}"
+      gl: "{{ country }}"
+      #location: "{{ location }}"
+      snapshot: "off"
+      thumbnail: "off"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      query: "{{ meta.search_params.q }}"
+      totalResults: "{{ meta.result_stats.total_results }}"
+      backend: "serping"
+      response_time: "{{ meta.result_stats.time_taken_displayed }}"
+    data:
+      _type: array
+      _path: origin_search.results
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.snippet }}"
+        url: "{{ item.source.link }}"
+
+
+brave:
+  request:
+    method: "GET"
+    url: "https://api.search.brave.com/res/v1/web/search"
+    timeout: "{{ timeout }}"
+    headers:
+      X-Subscription-Token: "{{ BRAVE_API_KEY }}"
+      Content-Type: "application/json"
+    parameters:
+      q: "{{ query }}"
+      count: "{{ limit }}"
+      search_lang: "{{ lang }}"
+      country: "{{ country }}"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "true"
+    metadata:
+      backend: "brave"
+    data:
+      _type: array
+      _path: web.results
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.description }}"
+        url: "{{ item.url }}"
+
+qwant: # not working
+  request:
+    method: "GET"
+    url: "https://api.qwant.com/v3/search/web"
+    timeout: "{{ timeout }}"
+    parameters:
+      q: "{{ query }}"
+      count: "10" # must be 10
+      #locale: "{{ lang }}_{{ country }}"
+      locale: "fr_FR"
+     # freshness: "all" # "month"
+     # safesearch: "0"
+      tgp: "3"
+      llm: "false"
+  config:
+    scrape: "false" # true if it can scrape and return the content of each result
+  response:
+    success: "{{ status }}"
+    metadata:
+      backend: "qwant"
+      query: "{{ data.query.query }}"
+    data:
+      _type: array
+      _path: data.result.items
+      fields:
+        title: "{{ item.title }}"
+        description: "{{ item.desc }}"
+        url: "{{ item.url }}"

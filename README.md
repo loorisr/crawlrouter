@@ -6,12 +6,15 @@ I've developed this tool because the different searching and scraping API availa
 
 It also allows to rotate between providers to stay within the rate limits.
 
+The backend sare configurable through yml file so you can add as many as you want without modifying the code!
+
 ## Features
 
 * lightweight: image is 64 mo
 * several SERP and scraping backend
 * backend rotation: randomly or sequentially
 * *very* basic web UI
+* backend are configurable through yml file template
 
 ![image](https://github.com/user-attachments/assets/5627ba73-ca01-4380-8647-e2d97a95f896)
 
@@ -94,7 +97,7 @@ You can also pass the API keys and endpoint via query parameters.
 *   `/v1/search?backend=` (POST): Search endpoint.
     *   `query`: Search query (required).
     *   `scrapeOptions` : {"formats": ["markdown"] }. If set, it will also scrape the page of each search result.
-    *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi` or `tavily` or a comma-separated list). Defaults to `SEARCH_BACKEND` environment variable if not provided.
+    *   `backend`: Search backend (optional, can be `google`, `searxng`, `brave`, `firecrawl`, `serpapi`, `serping` or `tavily` or a comma-separated list). Defaults to `SEARCH_BACKEND` environment variable if not provided.
 
 ### Scrape Endpoints
 
@@ -187,5 +190,5 @@ Ideas for the future:
 * implement crawl endpoint
 * complete the API implementation to be more compatible with Firecrawl (searching/scraping options) 
 * add rate limiting management
-* improve code: 1 file per backend
 * better UI with [NiceGUI](https://nicegui.io/) or [FastUI](https://github.com/pydantic/FastUI)
+ or [Reflex](https://github.com/reflex-dev/reflex)

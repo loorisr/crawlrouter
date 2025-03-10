@@ -1,0 +1,79 @@
+firecrawl:
+  request:
+    method: "POST"
+    url: "{{ FIRECRAWL_BATCH_SCRAPE_ENDPOINT }}"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ FIRECRAWL_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      urls: "{{ urls }}"
+      formats: "{{ formats }}"
+      onlyMainContent: "{{ onlyMainContent }}"
+      includeTags: "{{ includeTags }}"
+      excludeTags: "{{ excludeTags }}"
+      headers: "{{ headers }}"
+      waitFor: "{{ waitFor }}"
+      mobile: "{{ mobile }}"
+      skipTlsVerification: "{{ skipTlsVerification }}"
+      timeout: "{{ timeout }}"
+      jsonOptions: "{{ jsonOptions }}"
+      actions: "{{ actions }}"
+      location: "{{ location }}"
+      removeBase64Images: "{{ removeBase64Images }}"
+      blockAds: "{{ blockAds }}"
+      proxy: "{{ proxy }}"
+    _poll: # poll results
+      timeout: "60"
+      interval: "1"
+      url: "url" # url to poll. key in the return json
+  response:
+    success: "{{ success }}"
+    backend: "firecrawl"
+    data: "{{ data }}"
+
+tavily:
+  request:
+    method: "POST"
+    url: "https://api.tavily.com/extract"
+    timeout: "{{ timeout }}"
+    headers:
+      Authorization: "Bearer {{ TAVILY_API_KEY }}"
+      Content-Type: "application/json"
+    data:
+      urls: "{{ urls }}"
+      include_images: "false"
+      extract_depth: "basic" # or advanced
+  response:
+    success: "true"
+    backend: "tavily"
+    data: 
+      _type: array
+      _path: results
+      fields:
+        markdown: "{{ item.raw_content }}"
+        metadata:
+          url: "{{ item.url }}"
+
+
+
+crawl4ai:
+  request:
+    method: "POST"
+    url: "{{ CRAWL4AI_ENDPOINT }}"
+    data:
+      urls: "{{ urls }}"
+    headers:
+      Authorization: "Bearer {{ CRAWL4AI_API_KEY }}"
+      Content-Type: "application/json"
+    timeout: "{{ timeout }}"
+  response:
+    success: "success"
+    backend: "crawl4ai"
+    data: 
+      _type: array
+      _path: results
+      fields:
+        rawHtml: "{{ item.html }}"
+        markdown: "{{ item.markdown }}"
+        metadata: "{{ item.metadata }}"
