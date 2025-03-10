@@ -47,7 +47,7 @@ last_scrape_backend = None # to rotate scrape engine
 app = FastAPI(    title="CrawlRouter",
    # description=description,
     summary="Unified API for Searching and Scraping",
-    version="0.2.0",
+    version="0.3.0",
     contact={
         "name": "loorisr",
         "url": "https://github.com/loorisr/crawlrouter"
